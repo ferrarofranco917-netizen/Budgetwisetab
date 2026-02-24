@@ -825,7 +825,6 @@ class BudgetWise {
                 showAllExpenses: 'Afficher toutes les dépenses de la période',
                 edit: 'Modifier'
             }
-
         };
         
         this.init();
@@ -840,8 +839,8 @@ class BudgetWise {
         this.setupVoice();
         this.applyLanguage();
         this.startOnboarding();
-        this.updateAllCategorySelects(); // Popola i select con le categorie
-        this.initTabs(); // <--- AGGIUNTO
+        this.updateAllCategorySelects();
+        this.initTabs();
 
         // Sync toggle UI (mostra tutte le spese)
         const toggle = document.getElementById('showAllExpensesToggle');
@@ -859,8 +858,6 @@ class BudgetWise {
         return end.toISOString().split('T')[0];
     }
 
-    // Normalizza una data ISO in formato YYYY-MM-DD.
-    // Utile perché alcuni import possono produrre "YYYY-M-D" che non combacia con gli input date.
     normalizeIsoDate(dateStr) {
         if (!dateStr) return '';
         const s = String(dateStr).trim();
@@ -874,10 +871,8 @@ class BudgetWise {
         return s;
     }
 
-
     // ==================== FIRST RUN / DEMO DATA ====================
     isFirstRun() {
-        // Primo avvio se non esiste un flag "seen"
         return localStorage.getItem('budgetwise-first-run-seen') !== 'true';
     }
 
@@ -897,7 +892,6 @@ class BudgetWise {
     }
 
     ensureDemoCategories() {
-        // Categorie demo aggiuntive (non predefinite)
         const dc = this.getDemoCustomCategories();
         const demoCats = [dc.home, dc.kids, dc.work];
         let changed = false;
@@ -980,7 +974,6 @@ class BudgetWise {
         const dc = this.getDemoCustomCategories();
         const iso = (d) => d.toISOString().split('T')[0];
 
-        // periodo: da oggi a +30
         const start = new Date(today);
         const end = new Date(today);
         end.setDate(end.getDate() + 30);
@@ -994,7 +987,6 @@ class BudgetWise {
         const now = Date.now();
 
         const demoVariable = {};
-        // Giorno 0: due spese (anche "Casa")
         demoVariable[makeDate(0)] = [
             { name: T.grocery, amount: 23.40, category: 'Alimentari', id: now + 1 },
             { name: T.homeMaint, amount: 30.00, category: dc.home, id: now + 7 }
@@ -1210,7 +1202,6 @@ class BudgetWise {
         const showAllLabel = document.getElementById('showAllExpensesLabel');
         if (showAllLabel) showAllLabel.textContent = this.t('showAllExpenses');
         
-        // Traduzioni sezione Import CSV
         const csvTitle = document.getElementById('csvTitle');
         if (csvTitle) csvTitle.textContent = this.t('csvTitle');
 
@@ -1234,7 +1225,6 @@ class BudgetWise {
         const csvSeparatorLabel = document.getElementById('csvSeparatorLabel');
         if (csvSeparatorLabel) csvSeparatorLabel.textContent = this.t('csvSeparator');
 
-        // Traduci le opzioni dei select
         const delimiterSelect = document.getElementById('csvDelimiter');
         if (delimiterSelect) {
             const options = delimiterSelect.options;
@@ -1272,8 +1262,6 @@ class BudgetWise {
         const csvMappingFieldsTitle = document.getElementById('csvMappingFieldsTitle');
         if (csvMappingFieldsTitle) csvMappingFieldsTitle.textContent = this.t('csvMappingFieldsTitle');
 
-        
-        // Gestione categorie (sezione + modale)
         const catSectionTitle = Array.from(document.querySelectorAll('h2')).find(h => h.textContent.includes('📂'));
         if (catSectionTitle) catSectionTitle.textContent = this.t('categoriesSectionTitle');
 
@@ -1314,34 +1302,52 @@ class BudgetWise {
             tabButtons[4].textContent = this.t('tabTools');
         }
 
-        // Rirender liste per tradurre i placeholder "Nessuna ..."
         this.updateIncomeList();
         this.updateFixedExpensesList();
         this.updateVariableExpensesList();
         this.updateChart();
 
-        // Refresh categories UI (manager + selects)
         this.updateAllCategorySelects();
         const catOverlayOpen = document.getElementById('categoryManagerOverlay');
         if (catOverlayOpen && catOverlayOpen.style.display === 'flex') this.refreshCategoryList();
 
         this.updatePeriodInfo();
     }
-
-    // ========== METODO PER INIZIALIZZARE I TAB ==========
-    initTabs() {
+        initTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         const sections = document.querySelectorAll('.section-card[data-tab]');
 
         const showTab = (tabId) => {
-            sections.forEach(s => s.style.display = 'none');
-            document.querySelectorAll(`.section-card[data-tab="${tabId}"]`).forEach(s => s.style.display = 'block');
-            const guide = document.querySelector('.guide-message[data-tab]');
-            if (guide) {
-                guide.style.display = (tabId === guide.dataset.tab) ? 'block' : 'none';
-            }
-            tabs.forEach(t => t.classList.remove('active'));
-            document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+            // Nascondi tutte le sezioni con una leggera animazione
+            sections.forEach(s => {
+                s.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                s.style.opacity = '0';
+                s.style.transform = 'translateY(10px)';
+            });
+
+            setTimeout(() => {
+                sections.forEach(s => s.style.display = 'none');
+                const toShow = document.querySelectorAll(`.section-card[data-tab="${tabId}"]`);
+                toShow.forEach(s => {
+                    s.style.display = 'block';
+                    // Forza un reflow per far ripartire l'animazione
+                    void s.offsetWidth;
+                    s.style.opacity = '1';
+                    s.style.transform = 'translateY(0)';
+                });
+
+                const guide = document.querySelector('.guide-message[data-tab]');
+                if (guide) {
+                    guide.style.display = (tabId === guide.dataset.tab) ? 'block' : 'none';
+                    if (guide.style.display === 'block') {
+                        guide.style.opacity = '1';
+                        guide.style.transform = 'translateY(0)';
+                    }
+                }
+
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+            }, 200);
         };
 
         tabs.forEach(btn => {
@@ -1440,7 +1446,6 @@ class BudgetWise {
         const amount = parseFloat(document.getElementById('incomeAmount').value);
         const dateInput = document.getElementById('incomeDate').value;
         
-        // Se non c'è data, usa oggi
         const date = dateInput || new Date().toISOString().split('T')[0];
         
         if (!desc || !amount) {
@@ -1448,11 +1453,10 @@ class BudgetWise {
             return;
         }
         
-        // Se è la PRIMA entrata, imposta il periodo
         if (!Array.isArray(this.data.incomes) || this.data.incomes.length === 0) {
             const startDate = new Date(date);
             const endDate = new Date(startDate);
-            endDate.setDate(startDate.getDate() + 30); // 30 giorni di periodo
+            endDate.setDate(startDate.getDate() + 30);
             
             this.data.periodStart = startDate.toISOString().split('T')[0];
             this.data.periodEnd = endDate.toISOString().split('T')[0];
@@ -1708,7 +1712,6 @@ class BudgetWise {
         document.getElementById('languageSelect').addEventListener('change', (e) => {
             this.data.language = e.target.value;
             this.saveData();
-            // Applica traduzioni UI + rigenera liste/messaggi (es. "Nessuna entrata")
             this.applyLanguage();
             this.updateUI();
             this.updateChart();
@@ -1720,7 +1723,6 @@ class BudgetWise {
             });
         }
         
-        // Gestione categorie
         const manageCategoriesBtn = document.getElementById('manageCategoriesBtn');
         if (manageCategoriesBtn) {
             manageCategoriesBtn.addEventListener('click', () => this.showCategoryManager());
@@ -1829,7 +1831,7 @@ class BudgetWise {
                         <span class="expense-name">${inc.desc || '?'}</span>
                         <span class="expense-category">${inc.date || ''}</span>
                     </div>
-                    <span class="expense-amount" style="color: var(--secondary)">+${this.formatCurrency(inc.amount || 0)}</span>
+                    <span class="expense-amount" style="color: var(--success)">+${this.formatCurrency(inc.amount || 0)}</span>
                     <div class="expense-actions">
                         <button class="delete-income-btn" data-id="${inc.id}">🗑️</button>
                     </div>
@@ -1837,7 +1839,6 @@ class BudgetWise {
             `).join('');
         }
 
-        // Event listener per i pulsanti di eliminazione entrate
         document.querySelectorAll('.delete-income-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1896,7 +1897,6 @@ class BudgetWise {
             `;
         }).join('');
 
-        // Event listener per i pulsanti di eliminazione spese fisse
         document.querySelectorAll('.delete-fixed-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1913,7 +1913,6 @@ class BudgetWise {
         const selectedDateRaw = document.getElementById('expenseDate')?.value || '';
         const selectedDate = this.normalizeIsoDate(selectedDateRaw);
 
-        // Build view: either selected day OR all expenses
         let view = [];
         if (this.showAllExpenses) {
             const entries = (this.data.variableExpenses && typeof this.data.variableExpenses === 'object')
@@ -1961,7 +1960,6 @@ class BudgetWise {
             `;
         }).join('');
 
-        // Event listener per modifica spese variabili
         document.querySelectorAll('.edit-variable-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1971,7 +1969,6 @@ class BudgetWise {
             });
         });
 
-        // Event listener per i pulsanti di eliminazione spese variabili
         document.querySelectorAll('.delete-variable-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2010,7 +2007,6 @@ class BudgetWise {
         if (newCategory === null) return;
         const trimmedCat = String(newCategory).trim() || 'Altro';
 
-        // Se la categoria non esiste, la aggiungiamo tra le custom
         if (!this.getAllCategories().includes(trimmedCat)) {
             this.customCategories.push(trimmedCat);
             this.saveCustomCategories();
@@ -2027,8 +2023,7 @@ class BudgetWise {
         this.updateChart();
         this.showToast(this.data.language === 'it' ? '✅ Spesa aggiornata' : '✅ Expense updated', 'success');
     }
-
-    updateChart() {
+        updateChart() {
         const categories = {};
         const categoryExpenses = {};
 
@@ -2077,7 +2072,7 @@ class BudgetWise {
                 labels: Object.keys(categories),
                 datasets: [{
                     data: Object.values(categories),
-                    backgroundColor: ['#6366f1', '#818cf8', '#10b981', '#34d399', '#f59e0b', '#ef4444'],
+                    backgroundColor: ['#7c3aed', '#a78bfa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
                     borderColor: 'transparent'
                 }]
             },
@@ -2290,7 +2285,6 @@ class BudgetWise {
             try {
                 const parsed = JSON.parse(saved);
                 
-                // Se ci sono entrate ma non c'è periodStart, lo impostiamo dalla prima entrata
                 if (parsed.incomes && parsed.incomes.length > 0 && !parsed.periodStart) {
                     const firstIncome = parsed.incomes.sort((a, b) => 
                         new Date(a.date) - new Date(b.date)
@@ -2304,7 +2298,6 @@ class BudgetWise {
                     parsed.periodEnd = endDate.toISOString().split('T')[0];
                 }
                 
-                // Gestione retrocompatibilità
                 if (parsed.income !== undefined && !parsed.incomes) {
                     parsed.incomes = [{
                         desc: this.data.language === 'it' ? 'Stipendio' : 'Salary',
@@ -2419,9 +2412,8 @@ class BudgetWise {
     learnCategory(description, category) {
         if (!description || !category) return;
         
-        // Estrai parola chiave (prima parola della descrizione)
         const keyword = description.toLowerCase().split(' ')[0].replace(/[^a-z0-9]/gi, '');
-        if (keyword.length < 3) return; // Ignora parole troppo corte
+        if (keyword.length < 3) return;
         
         this.categoryRules[keyword] = category;
         localStorage.setItem('budgetwise-category-rules', JSON.stringify(this.categoryRules));
@@ -2431,14 +2423,13 @@ class BudgetWise {
     suggestCategory(description) {
         const lowerDesc = description.toLowerCase();
         
-        // Cerca nelle regole apprese
         for (const [keyword, category] of Object.entries(this.categoryRules)) {
             if (lowerDesc.includes(keyword)) {
                 return category;
             }
         }
         
-        return 'Altro'; // Default
+        return 'Altro';
     }
 
     // ========== GESTIONE CATEGORIE PERSONALIZZATE ==========
@@ -2463,57 +2454,56 @@ class BudgetWise {
     }
     
     refreshCategoryList() {
-    const defaultList = document.getElementById('defaultCategoriesList');
-    const customList = document.getElementById('customCategoriesList');
-    
-    if (defaultList) {
-        defaultList.innerHTML = this.defaultCategories.map(cat => {
-            // Mappa il nome italiano alla chiave di traduzione corrispondente
-            let translationKey = '';
-            switch(cat) {
-                case 'Alimentari': translationKey = 'categoryAlimentari'; break;
-                case 'Trasporti': translationKey = 'categoryTrasporti'; break;
-                case 'Svago': translationKey = 'categorySvago'; break;
-                case 'Salute': translationKey = 'categorySalute'; break;
-                case 'Abbigliamento': translationKey = 'categoryAbbigliamento'; break;
-                case 'Altro': translationKey = 'categoryAltro'; break;
-                default: translationKey = cat; // fallback (non dovrebbe servire)
-            }
-            const displayName = this.t(translationKey);
-            return `<div class="category-item default"><span>${displayName}</span></div>`;
-        }).join('');
-    }
-    
-    if (customList) {
-        if (this.customCategories.length === 0) {
-            customList.innerHTML = `<p class="empty-message">${this.t('noCustomCategories')}</p>`;
-        } else {
-            customList.innerHTML = this.customCategories.map((cat, index) => `
-                <div class="category-item custom">
-                    <span>${cat}</span>
-                    <div>
-                        <button class="edit-category-btn" data-index="${index}">✏️</button>
-                        <button class="delete-category-btn" data-index="${index}">🗑️</button>
+        const defaultList = document.getElementById('defaultCategoriesList');
+        const customList = document.getElementById('customCategoriesList');
+        
+        if (defaultList) {
+            defaultList.innerHTML = this.defaultCategories.map(cat => {
+                let translationKey = '';
+                switch(cat) {
+                    case 'Alimentari': translationKey = 'categoryAlimentari'; break;
+                    case 'Trasporti': translationKey = 'categoryTrasporti'; break;
+                    case 'Svago': translationKey = 'categorySvago'; break;
+                    case 'Salute': translationKey = 'categorySalute'; break;
+                    case 'Abbigliamento': translationKey = 'categoryAbbigliamento'; break;
+                    case 'Altro': translationKey = 'categoryAltro'; break;
+                    default: translationKey = cat;
+                }
+                const displayName = this.t(translationKey);
+                return `<div class="category-item default"><span>${displayName}</span></div>`;
+            }).join('');
+        }
+        
+        if (customList) {
+            if (this.customCategories.length === 0) {
+                customList.innerHTML = `<p class="empty-message">${this.t('noCustomCategories')}</p>`;
+            } else {
+                customList.innerHTML = this.customCategories.map((cat, index) => `
+                    <div class="category-item custom">
+                        <span>${cat}</span>
+                        <div>
+                            <button class="edit-category-btn" data-index="${index}">✏️</button>
+                            <button class="delete-category-btn" data-index="${index}">🗑️</button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
-            
-            document.querySelectorAll('.edit-category-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const index = e.target.dataset.index;
-                    this.editCategory(parseInt(index));
+                `).join('');
+                
+                document.querySelectorAll('.edit-category-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        this.editCategory(parseInt(index));
+                    });
                 });
-            });
-            
-            document.querySelectorAll('.delete-category-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const index = e.target.dataset.index;
-                    this.deleteCategory(parseInt(index));
+                
+                document.querySelectorAll('.delete-category-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        this.deleteCategory(parseInt(index));
+                    });
                 });
-            });
+            }
         }
     }
-}
     
     editCategory(index) {
         const oldName = this.customCategories[index];
@@ -2573,8 +2563,6 @@ class BudgetWise {
         if (mainSelect) {
             mainSelect.innerHTML = optionsHtml;
         }
-        
-        // Se ci sono select di revisione aperti, li aggiorniamo? (opzionale)
     }
     
     getCategoryEmoji(category) {
@@ -2588,8 +2576,7 @@ class BudgetWise {
         };
         return emojiMap[category] || '📌';
     }
-
-    // ========== REVISIONE IMPORT CSV ==========
+        // ========== REVISIONE IMPORT CSV ==========
     showImportReview(importedExpenses) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('importReviewOverlay');
@@ -2866,7 +2853,6 @@ class BudgetWise {
                     this.saveData();
                     this.updateUI();
                     this.updateChart();
-                    // Porta subito l'utente su una data importata, così vede le spese nella lista.
                     const mostRecent = reviewed
                         .map(e => this.normalizeIsoDate(e.date))
                         .sort()
@@ -2892,10 +2878,11 @@ class BudgetWise {
             alert(this.t('fileReadError'));
         };
         reader.readAsText(file);
-    }    // ========== ONBOARDING GUIDATO ==========
+    }
+
+    // ========== ONBOARDING GUIDATO ==========
     startOnboarding() {
         if (localStorage.getItem('budgetwise-onboarding-completed') === 'true') return;
-        // Se NON è first run, non mostrare l'onboarding
         if (!this.isFirstRun()) return;
 
         const steps = [
@@ -2964,12 +2951,12 @@ class BudgetWise {
             </div>
 
             <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom: 14px;">
-    <button id="onboarding-demo" class="btn-secondary" style="padding: 12px 20px; border-radius: 50px; min-width: 180px;">
-        ${this.t('onboardingDemo')}
-    </button>
-    <button id="onboarding-empty" class="btn-text" style="padding: 12px 14px;">
-        ${this.t('onboardingEmpty')}
-    </button>
+                <button id="onboarding-demo" class="btn-secondary" style="padding: 12px 20px; border-radius: 50px; min-width: 180px;">
+                    ${this.t('onboardingDemo')}
+                </button>
+                <button id="onboarding-empty" class="btn-text" style="padding: 12px 14px;">
+                    ${this.t('onboardingEmpty')}
+                </button>
             </div>
 
             <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
@@ -2993,12 +2980,12 @@ class BudgetWise {
                 }
                 .onboarding-highlight {
                     animation: targetGlow 2s infinite !important;
-                    box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.8), 0 0 30px rgba(67, 97, 238, 0.6) !important;
+                    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.6) !important;
                 }
                 @keyframes targetGlow {
-                    0% { box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.8), 0 0 30px rgba(67, 97, 238, 0.6); }
-                    50% { box-shadow: 0 0 0 8px rgba(67, 97, 238, 1), 0 0 50px rgba(67, 97, 238, 0.9); }
-                    100% { box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.8), 0 0 30px rgba(67, 97, 238, 0.6); }
+                    0% { box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.6); }
+                    50% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 1), 0 0 50px rgba(124, 58, 237, 0.9); }
+                    100% { box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.6); }
                 }
             `;
             document.head.appendChild(style);
@@ -3183,8 +3170,7 @@ class BudgetWise {
         document.getElementById('fixedEndDate').value = endDate;
         alert(this.t('voiceFixedDetected', { name, amount: amount, day }));
     }
-
-    // ========== AI WIDGET ==========
+        // ========== AI WIDGET ==========
     generateAiSuggestion() {
         const suggestions = [];
         const language = this.data.language;
