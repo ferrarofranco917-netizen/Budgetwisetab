@@ -30,10 +30,19 @@ class BudgetWise {
         // ========== UI STATE ==========
         // Mostra tutte le spese variabili del periodo (non solo del giorno selezionato)
         this.showAllExpenses = localStorage.getItem('budgetwise-show-all-expenses') === 'true';
-        
+                // ========== COLORI PERSONALIZZATI ==========
+        this.customColors = JSON.parse(localStorage.getItem('budgetwise-custom-colors')) || {
+            accent: '#3b82f6',
+            accentLight: '#60a5fa',
+            cardBg: '#ffffff',
+            textPrimary: '#0f172a',
+            textSecondary: '#475569',
+            bg: '#f8fafc'
+        };
         // ========== TRADUZIONI ==========
         this.translations = {
             it: {
+                resetColors: 'Ripristina colori predefiniti',
                 budget: 'Budget giornaliero',
                 remaining: 'Rimanenza',
                 days: 'Giorni rimasti',
@@ -237,6 +246,7 @@ class BudgetWise {
                 close: 'Chiudi',
             },
             en: {
+                resetColors: 'Reset default colors',
                 budget: 'Daily budget',
                 remaining: 'Remaining',
                 days: 'Days left',
@@ -440,6 +450,7 @@ class BudgetWise {
                 close: 'Close',
             },
             es: {
+                resetColors: 'Restablecer colores predeterminados',
                 budget: 'Presupuesto diario',
                 remaining: 'Restante',
                 days: 'Días restantes',
@@ -633,6 +644,7 @@ class BudgetWise {
                 edit: 'Editar'
             },
             fr: {
+                resetColors: 'Réinitialiser les couleurs par défaut',
                 budget: 'Budget journalier',
                 remaining: 'Reste',
                 days: 'Jours restants',
@@ -830,10 +842,12 @@ class BudgetWise {
         this.init();
     }
 
-    init() {
+        init() {
         this.loadData();
         this.setupEventListeners();
         this.applyTheme();
+        this.applyCustomColors();        // <--- AGGIUNTO
+        this.setupColorPickers();        // <--- AGGIUNTO
         this.updateUI();
         this.updateChart();
         this.setupVoice();
@@ -842,7 +856,6 @@ class BudgetWise {
         this.updateAllCategorySelects();
         this.initTabs();
 
-        // Sync toggle UI (mostra tutte le spese)
         const toggle = document.getElementById('showAllExpensesToggle');
         if (toggle) toggle.checked = !!this.showAllExpenses;
     }
@@ -2269,12 +2282,161 @@ class BudgetWise {
             document.getElementById('themeToggle').textContent = '☀️';
         }
     }
-
+    applyCustomColors() {
+        // Applica i colori personalizzati alle variabili CSS
+        document.documentElement.style.setProperty('--accent', this.customColors.accent);
+        document.documentElement.style.setProperty('--accent-light', this.customColors.accentLight);
+        document.documentElement.style.setProperty('--card-bg', this.customColors.cardBg);
+        document.documentElement.style.setProperty('--text-primary', this.customColors.textPrimary);
+        document.documentElement.style.setProperty('--text-secondary', this.customColors.textSecondary);
+        document.documentElement.style.setProperty('--bg-color', this.customColors.bg);
+        
+        // Aggiorna anche il gradiente (dipende dall'accent)
+        document.documentElement.style.setProperty('--accent-gradient', 
+            `linear-gradient(135deg, ${this.customColors.accent}, ${this.customColors.accentLight})`);
+        
+        // Se il tema è scuro, potremmo voler sovrascrivere? No, i colori personalizzati hanno la precedenza.
+        // Ma se l'utente vuole mantenere il tema scuro, deve impostare colori scuri manualmente.
+        // Opzionale: sincronizzare i campi input con i valori correnti
+        this.syncColorPickers();
+    }
+        syncColorPickers() {
+        const setField = (id, value) => {
+            const input = document.getElementById(id);
+            if (input) input.value = value;
+        };
+        setField('colorAccent', this.customColors.accent);
+        setField('colorAccentText', this.customColors.accent);
+        setField('colorAccentLight', this.customColors.accentLight);
+        setField('colorAccentLightText', this.customColors.accentLight);
+        setField('colorCardBg', this.customColors.cardBg);
+        setField('colorCardBgText', this.customColors.cardBg);
+        setField('colorTextPrimary', this.customColors.textPrimary);
+        setField('colorTextPrimaryText', this.customColors.textPrimary);
+        setField('colorTextSecondary', this.customColors.textSecondary);
+        setField('colorTextSecondaryText', this.customColors.textSecondary);
+        setField('colorBg', this.customColors.bg);
+        setField('colorBgText', this.customColors.bg);
+    }
     saveTheme() {
         const theme = document.documentElement.getAttribute('data-theme') || 'light';
         localStorage.setItem('budgetwise-theme', theme);
     }
-
+    saveCustomColors() {
+        localStorage.setItem('budgetwise-custom-colors', JSON.stringify(this.customColors));
+    }
+        setupColorPickers() {
+        const colorInputs = [
+            'colorAccent', 'colorAccentLight', 'colorCardBg', 
+            'colorTextPrimary', 'colorTextSecondary', 'colorBg'
+        ];
+        
+        colorInputs.forEach(id => {
+            const picker = document.getElementById(id);
+            const text = document.getElementById(id + 'Text');
+            
+            if (picker) {
+                picker.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    // Aggiorna il campo text corrispondente
+                    if (text) text.value = value;
+                    // Aggiorna il colore nella proprietà
+                    const propName = id.replace('color', '').charAt(0).toLowerCase() + id.replace('color', '').slice(1);
+                    this.customColors[propName] = value;
+                    // Applica subito il cambiamento
+                    this.applyCustomColors();
+                });
+            }
+            
+            if (text) {
+                text.addEventListener('input', (e) => {
+                    let value = e.target.value.trim();
+                    // Validazione base: deve essere un hex valido
+                    if (/^#[0-9A-F]{6}$/i.test(value)) {
+                        if (picker) picker.value = value;
+                        const propName = id.replace('color', '').charAt(0).toLowerCase() + id.replace('color', '').slice(1);
+                        this.customColors[propName] = value;
+                        this.applyCustomColors();
+                    }
+                });
+            }
+        });
+        
+        // Bottone reset
+        const resetBtn = document.getElementById('resetColorsBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.customColors = {
+                    accent: '#3b82f6',
+                    accentLight: '#60a5fa',
+                    cardBg: '#ffffff',
+                    textPrimary: '#0f172a',
+                    textSecondary: '#475569',
+                    bg: '#f8fafc'
+                };
+                this.applyCustomColors();
+                this.saveCustomColors();
+                this.syncColorPickers();
+                this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
+            });
+        }
+    }
+        setupColorPickers() {
+        const colorInputs = [
+            'colorAccent', 'colorAccentLight', 'colorCardBg', 
+            'colorTextPrimary', 'colorTextSecondary', 'colorBg'
+        ];
+        
+        colorInputs.forEach(id => {
+            const picker = document.getElementById(id);
+            const text = document.getElementById(id + 'Text');
+            
+            if (picker) {
+                picker.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    // Aggiorna il campo text corrispondente
+                    if (text) text.value = value;
+                    // Aggiorna il colore nella proprietà
+                    const propName = id.replace('color', '').charAt(0).toLowerCase() + id.replace('color', '').slice(1);
+                    this.customColors[propName] = value;
+                    // Applica subito il cambiamento
+                    this.applyCustomColors();
+                });
+            }
+            
+            if (text) {
+                text.addEventListener('input', (e) => {
+                    let value = e.target.value.trim();
+                    // Validazione base: deve essere un hex valido
+                    if (/^#[0-9A-F]{6}$/i.test(value)) {
+                        if (picker) picker.value = value;
+                        const propName = id.replace('color', '').charAt(0).toLowerCase() + id.replace('color', '').slice(1);
+                        this.customColors[propName] = value;
+                        this.applyCustomColors();
+                    }
+                });
+            }
+        });
+        
+        // Bottone reset
+        const resetBtn = document.getElementById('resetColorsBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.customColors = {
+                    accent: '#3b82f6',
+                    accentLight: '#60a5fa',
+                    cardBg: '#ffffff',
+                    textPrimary: '#0f172a',
+                    textSecondary: '#475569',
+                    bg: '#f8fafc'
+                };
+                this.applyCustomColors();
+                this.saveCustomColors();
+                this.syncColorPickers();
+                this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
+            });
+        }
+    }
     saveData() {
         localStorage.setItem('budgetwise-data', JSON.stringify(this.data));
     }
@@ -2367,6 +2529,18 @@ class BudgetWise {
             this.updateChart();
             this.applyLanguage();
             alert(this.t('resetCompleted'));
+                // Resetta anche i colori personalizzati (se desideri)
+    this.customColors = {
+        accent: '#3b82f6',
+        accentLight: '#60a5fa',
+        cardBg: '#ffffff',
+        textPrimary: '#0f172a',
+        textSecondary: '#475569',
+        bg: '#f8fafc'
+    };
+    this.applyCustomColors();
+    this.saveCustomColors();
+    this.syncColorPickers();
         }
     }
 
