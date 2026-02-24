@@ -166,61 +166,68 @@ class BudgetWise {
                 categoryUpdated: '✏️ Categoria aggiornata',
                 defaultCategories: 'Categorie predefinite',
                 customCategories: 'Le tue categorie',
-                noCustomCategories: 'Nessuna categoria personalizzata'
-,
-docTitle: '💰 BudgetWise 2.0 - Gestione Finanziaria Intelligente',
-subtitle: 'Stipendio a stipendio — gestione intelligente con AI',
-add: 'Aggiungi',
-dateHint: 'gg/mm/aaaa',
-autoRecommended: 'Auto (consigliato)',
-ddmmyyyy: 'GG/MM/AAAA',
-mmddyyyy: 'MM/DD/AAAA',
-positiveBalance: 'Saldo positivo',
-negativeBalance: 'Attenzione: saldo negativo',
-vsYesterday0: 'rispetto a ieri: 0%',
-detailTotal: 'Totale: {total}',
-noExpensesShort: 'Nessuna spesa',
-voiceSpeak: 'Parlare...',
-voiceTap: 'Tocca per parlare',
-error: 'Errore',
-genericExpense: 'Spesa',
-voiceDetected: '✅ Rilevato: {desc} {amount}€',
-voiceFixedDetected: '✅ Spesa fissa rilevata: {name} {amount}€ giorno {day}',
-invalidFile: '❌ File non valido',
-fixedExpense: 'Spesa fissa',
-everyMonthOnDay: 'Ogni mese il giorno',
-featureInDev: '🔍 Funzionalità in sviluppo',
-csvTemplateDetected: '📌 Rilevato template CSV: "{name}".\nVuoi usarlo automaticamente?',
-csvFieldDate: '📅 Data',
-csvFieldDescription: '📝 Descrizione',
-csvFieldAmount: '💰 Importo',
-csvFieldCategory: '🏷️ Categoria',
-csvFieldIgnore: '❌ Ignora',
-csvSaveAsTemplate: '💾 Salva come template',
-csvTemplateNamePlaceholder: 'Nome template (es. Intesa, Unicredit...)',
-csvColumnN: 'Colonna {n}',
-empty: 'vuota',
-csvMappingRequired: '❌ Devi mappare Data, Descrizione e Importo!',
-csvEmpty: '❌ CSV vuoto',
-importCancelled: '⏸️ Import annullato',
-csvImportError: '❌ Errore durante l\'import CSV',
-fileReadError: '❌ Errore durante la lettura del file',
-importCompleted: '✅ Import completato!\n➕ Aggiunti: {added}{dupLine}',
+                noCustomCategories: 'Nessuna categoria personalizzata',
+
+                // NUOVE CHIAVI PER I TAB
+                tabHome: '🏠 Home',
+                tabIncomes: '🏦 Entrate',
+                tabFixed: '📌 Fisse',
+                tabVariable: '🧾 Variabili',
+                tabTools: '🛠️ Strumenti',
+
+                docTitle: '💰 BudgetWise 2.0 - Gestione Finanziaria Intelligente',
+                subtitle: 'Stipendio a stipendio — gestione intelligente con AI',
+                add: 'Aggiungi',
+                dateHint: 'gg/mm/aaaa',
+                autoRecommended: 'Auto (consigliato)',
+                ddmmyyyy: 'GG/MM/AAAA',
+                mmddyyyy: 'MM/DD/AAAA',
+                positiveBalance: 'Saldo positivo',
+                negativeBalance: 'Attenzione: saldo negativo',
+                vsYesterday0: 'rispetto a ieri: 0%',
+                detailTotal: 'Totale: {total}',
+                noExpensesShort: 'Nessuna spesa',
+                voiceSpeak: 'Parlare...',
+                voiceTap: 'Tocca per parlare',
+                error: 'Errore',
+                genericExpense: 'Spesa',
+                voiceDetected: '✅ Rilevato: {desc} {amount}€',
+                voiceFixedDetected: '✅ Spesa fissa rilevata: {name} {amount}€ giorno {day}',
+                invalidFile: '❌ File non valido',
+                fixedExpense: 'Spesa fissa',
+                everyMonthOnDay: 'Ogni mese il giorno',
+                featureInDev: '🔍 Funzionalità in sviluppo',
+                csvTemplateDetected: '📌 Rilevato template CSV: "{name}".\nVuoi usarlo automaticamente?',
+                csvFieldDate: '📅 Data',
+                csvFieldDescription: '📝 Descrizione',
+                csvFieldAmount: '💰 Importo',
+                csvFieldCategory: '🏷️ Categoria',
+                csvFieldIgnore: '❌ Ignora',
+                csvSaveAsTemplate: '💾 Salva come template',
+                csvTemplateNamePlaceholder: 'Nome template (es. Intesa, Unicredit...)',
+                csvColumnN: 'Colonna {n}',
+                empty: 'vuota',
+                csvMappingRequired: '❌ Devi mappare Data, Descrizione e Importo!',
+                csvEmpty: '❌ CSV vuoto',
+                importCancelled: '⏸️ Import annullato',
+                csvImportError: '❌ Errore durante l\'import CSV',
+                fileReadError: '❌ Errore durante la lettura del file',
+                importCompleted: '✅ Import completato!\n➕ Aggiunti: {added}{dupLine}',
                 duplicatesSkipped: '⚠️ Duplicati saltati: {dup}',
-onboardingSubtitle: 'Segui la guida passo-passo',
-onboardingDemo: '✨ Carica dati demo',
-onboardingEmpty: 'Inizia vuoto',
-you: 'Tu',
-adviceRed: '⚠️ Sei in rosso! Rivedi le spese.',
-adviceLowRemaining: '⚠️ Attenzione: ti rimangono solo {remaining} per i prossimi giorni.',
-adviceGood: '💪 Vai bene! Hai ancora {remaining} di margine.',
-aiSuggestionsTitle: '🤖 Suggerimenti AI',
-aiSmartBadge: 'intelligente',
-csvMappingTitle: '📋 Mappa le colonne del file CSV',
-csvMappingInstructionsHtml: '<strong>📌 Istruzioni:</strong> Associa ogni colonna del tuo file al campo corrispondente. Le righe con importo positivo saranno considerate <strong>entrate</strong>, quelle negative <strong>spese</strong>.',
-csvMappingFieldsTitle: '🎯 Associazione campi:',
-showAllExpenses: 'Mostra tutte le spese del periodo',
-edit: 'Modifica',
+                onboardingSubtitle: 'Segui la guida passo-passo',
+                onboardingDemo: '✨ Carica dati demo',
+                onboardingEmpty: 'Inizia vuoto',
+                you: 'Tu',
+                adviceRed: '⚠️ Sei in rosso! Rivedi le spese.',
+                adviceLowRemaining: '⚠️ Attenzione: ti rimangono solo {remaining} per i prossimi giorni.',
+                adviceGood: '💪 Vai bene! Hai ancora {remaining} di margine.',
+                aiSuggestionsTitle: '🤖 Suggerimenti AI',
+                aiSmartBadge: 'intelligente',
+                csvMappingTitle: '📋 Mappa le colonne del file CSV',
+                csvMappingInstructionsHtml: '<strong>📌 Istruzioni:</strong> Associa ogni colonna del tuo file al campo corrispondente. Le righe con importo positivo saranno considerate <strong>entrate</strong>, quelle negative <strong>spese</strong>.',
+                csvMappingFieldsTitle: '🎯 Associazione campi:',
+                showAllExpenses: 'Mostra tutte le spese del periodo',
+                edit: 'Modifica',
                 categoriesSectionTitle: '📂 Gestione categorie',
                 manageCustomCategories: '➕ Gestisci categorie personalizzate',
                 newCategoryLabel: 'Nuova categoria',
@@ -362,61 +369,68 @@ edit: 'Modifica',
                 categoryUpdated: '✏️ Category updated',
                 defaultCategories: 'Default categories',
                 customCategories: 'Your categories',
-                noCustomCategories: 'No custom categories'
-,
-docTitle: '💰 BudgetWise 2.0 - Smart Budget Manager',
-subtitle: 'Paycheck to paycheck — smart management with AI',
-add: 'Add',
-dateHint: 'mm/dd/yyyy',
-autoRecommended: 'Auto (recommended)',
-ddmmyyyy: 'DD/MM/YYYY',
-mmddyyyy: 'MM/DD/YYYY',
-positiveBalance: 'Positive balance',
-negativeBalance: 'Warning: negative balance',
-vsYesterday0: 'vs yesterday: 0%',
-detailTotal: 'Total: {total}',
-noExpensesShort: 'No expenses',
-voiceSpeak: 'Speak...',
-voiceTap: 'Tap to speak',
-error: 'Error',
-genericExpense: 'Expense',
-voiceDetected: '✅ Detected: {desc} €{amount}',
-voiceFixedDetected: '✅ Fixed expense detected: {name} €{amount} day {day}',
-invalidFile: '❌ Invalid file',
-fixedExpense: 'Fixed expense',
-everyMonthOnDay: 'Every month on day',
-featureInDev: '🔍 Feature in development',
-csvTemplateDetected: '📌 CSV template detected: "{name}".\nUse it automatically?',
-csvFieldDate: '📅 Date',
-csvFieldDescription: '📝 Description',
-csvFieldAmount: '💰 Amount',
-csvFieldCategory: '🏷️ Category',
-csvFieldIgnore: '❌ Ignore',
-csvSaveAsTemplate: '💾 Save as template',
-csvTemplateNamePlaceholder: 'Template name (e.g. Intesa, Unicredit...)',
-csvColumnN: 'Column {n}',
-empty: 'empty',
-csvMappingRequired: '❌ You must map Date, Description and Amount!',
-csvEmpty: '❌ Empty CSV',
-importCancelled: '⏸️ Import cancelled',
-csvImportError: '❌ Error during CSV import',
-fileReadError: '❌ Error reading the file',
-importCompleted: '✅ Import completed!\n➕ Added: {added}{dupLine}',
+                noCustomCategories: 'No custom categories',
+
+                // NUOVE CHIAVI PER I TAB
+                tabHome: '🏠 Home',
+                tabIncomes: '🏦 Incomes',
+                tabFixed: '📌 Fixed',
+                tabVariable: '🧾 Variable',
+                tabTools: '🛠️ Tools',
+
+                docTitle: '💰 BudgetWise 2.0 - Smart Budget Manager',
+                subtitle: 'Paycheck to paycheck — smart management with AI',
+                add: 'Add',
+                dateHint: 'mm/dd/yyyy',
+                autoRecommended: 'Auto (recommended)',
+                ddmmyyyy: 'DD/MM/YYYY',
+                mmddyyyy: 'MM/DD/YYYY',
+                positiveBalance: 'Positive balance',
+                negativeBalance: 'Warning: negative balance',
+                vsYesterday0: 'vs yesterday: 0%',
+                detailTotal: 'Total: {total}',
+                noExpensesShort: 'No expenses',
+                voiceSpeak: 'Speak...',
+                voiceTap: 'Tap to speak',
+                error: 'Error',
+                genericExpense: 'Expense',
+                voiceDetected: '✅ Detected: {desc} €{amount}',
+                voiceFixedDetected: '✅ Fixed expense detected: {name} €{amount} day {day}',
+                invalidFile: '❌ Invalid file',
+                fixedExpense: 'Fixed expense',
+                everyMonthOnDay: 'Every month on day',
+                featureInDev: '🔍 Feature in development',
+                csvTemplateDetected: '📌 CSV template detected: "{name}".\nUse it automatically?',
+                csvFieldDate: '📅 Date',
+                csvFieldDescription: '📝 Description',
+                csvFieldAmount: '💰 Amount',
+                csvFieldCategory: '🏷️ Category',
+                csvFieldIgnore: '❌ Ignore',
+                csvSaveAsTemplate: '💾 Save as template',
+                csvTemplateNamePlaceholder: 'Template name (e.g. Intesa, Unicredit...)',
+                csvColumnN: 'Column {n}',
+                empty: 'empty',
+                csvMappingRequired: '❌ You must map Date, Description and Amount!',
+                csvEmpty: '❌ Empty CSV',
+                importCancelled: '⏸️ Import cancelled',
+                csvImportError: '❌ Error during CSV import',
+                fileReadError: '❌ Error reading the file',
+                importCompleted: '✅ Import completed!\n➕ Added: {added}{dupLine}',
                 duplicatesSkipped: '⚠️ Duplicates skipped: {dup}',
-onboardingSubtitle: 'Follow the step-by-step guide',
-onboardingDemo: '✨ Load demo data',
-onboardingEmpty: 'Start empty',
-you: 'You',
-adviceRed: "⚠️ You're in the red! Review your expenses.",
-adviceLowRemaining: '⚠️ Warning: you only have {remaining} left for the coming days.',
-adviceGood: "💪 You're doing well! You still have {remaining} left.",
-aiSuggestionsTitle: '🤖 AI Suggestions',
-aiSmartBadge: 'smart',
-csvMappingTitle: '📋 Map CSV columns',
-csvMappingInstructionsHtml: '<strong>📌 Instructions:</strong> Map each CSV column to the right field. Positive amounts are treated as <strong>income</strong>, negative amounts as <strong>expenses</strong>.',
-csvMappingFieldsTitle: '🎯 Field mapping:',
-showAllExpenses: 'Show all period expenses',
-edit: 'Edit',
+                onboardingSubtitle: 'Follow the step-by-step guide',
+                onboardingDemo: '✨ Load demo data',
+                onboardingEmpty: 'Start empty',
+                you: 'You',
+                adviceRed: "⚠️ You're in the red! Review your expenses.",
+                adviceLowRemaining: '⚠️ Warning: you only have {remaining} left for the coming days.',
+                adviceGood: "💪 You're doing well! You still have {remaining} left.",
+                aiSuggestionsTitle: '🤖 AI Suggestions',
+                aiSmartBadge: 'smart',
+                csvMappingTitle: '📋 Map CSV columns',
+                csvMappingInstructionsHtml: '<strong>📌 Instructions:</strong> Map each CSV column to the right field. Positive amounts are treated as <strong>income</strong>, negative amounts as <strong>expenses</strong>.',
+                csvMappingFieldsTitle: '🎯 Field mapping:',
+                showAllExpenses: 'Show all period expenses',
+                edit: 'Edit',
                 categoriesSectionTitle: '📂 Category management',
                 manageCustomCategories: '➕ Manage custom categories',
                 newCategoryLabel: 'New category',
@@ -556,6 +570,14 @@ edit: 'Edit',
                 defaultCategories: 'Categorías predeterminadas',
                 customCategories: 'Tus categorías',
                 noCustomCategories: 'Sin categorías personalizadas',
+
+                // NUOVE CHIAVI PER I TAB
+                tabHome: '🏠 Inicio',
+                tabIncomes: '🏦 Ingresos',
+                tabFixed: '📌 Fijas',
+                tabVariable: '🧾 Variables',
+                tabTools: '🛠️ Herramientas',
+
                 docTitle: '💰 BudgetWise 2.0 - Gestor de presupuesto inteligente',
                 subtitle: 'De nómina a nómina — gestión inteligente con IA',
                 add: 'Añadir',
@@ -741,6 +763,14 @@ edit: 'Edit',
                 defaultCategories: 'Catégories par défaut',
                 customCategories: 'Tes catégories',
                 noCustomCategories: 'Aucune catégorie personnalisée',
+
+                // NUOVE CHIAVI PER I TAB
+                tabHome: '🏠 Accueil',
+                tabIncomes: '🏦 Revenus',
+                tabFixed: '📌 Fixes',
+                tabVariable: '🧾 Variables',
+                tabTools: '🛠️ Outils',
+
                 docTitle: '💰 BudgetWise 2.0 - Gestionnaire de budget intelligent',
                 subtitle: 'De paie en paie — gestion intelligente avec IA',
                 add: 'Ajouter',
@@ -811,6 +841,7 @@ edit: 'Edit',
         this.applyLanguage();
         this.startOnboarding();
         this.updateAllCategorySelects(); // Popola i select con le categorie
+        this.initTabs(); // <--- AGGIUNTO
 
         // Sync toggle UI (mostra tutte le spese)
         const toggle = document.getElementById('showAllExpensesToggle');
@@ -1273,6 +1304,16 @@ edit: 'Edit',
             if (closeCatBtn) closeCatBtn.textContent = this.t('close');
         }
 
+        // Traduci i bottoni dei tab
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        if (tabButtons.length >= 5) {
+            tabButtons[0].textContent = this.t('tabHome');
+            tabButtons[1].textContent = this.t('tabIncomes');
+            tabButtons[2].textContent = this.t('tabFixed');
+            tabButtons[3].textContent = this.t('tabVariable');
+            tabButtons[4].textContent = this.t('tabTools');
+        }
+
         // Rirender liste per tradurre i placeholder "Nessuna ..."
         this.updateIncomeList();
         this.updateFixedExpensesList();
@@ -1285,6 +1326,31 @@ edit: 'Edit',
         if (catOverlayOpen && catOverlayOpen.style.display === 'flex') this.refreshCategoryList();
 
         this.updatePeriodInfo();
+    }
+
+    // ========== METODO PER INIZIALIZZARE I TAB ==========
+    initTabs() {
+        const tabs = document.querySelectorAll('.tab-btn');
+        const sections = document.querySelectorAll('.section-card[data-tab]');
+
+        const showTab = (tabId) => {
+            sections.forEach(s => s.style.display = 'none');
+            document.querySelectorAll(`.section-card[data-tab="${tabId}"]`).forEach(s => s.style.display = 'block');
+            const guide = document.querySelector('.guide-message[data-tab]');
+            if (guide) {
+                guide.style.display = (tabId === guide.dataset.tab) ? 'block' : 'none';
+            }
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+        };
+
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                showTab(btn.dataset.tab);
+            });
+        });
+
+        showTab('home');
     }
 
     updatePeriodInfo() {
