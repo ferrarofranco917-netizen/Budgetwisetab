@@ -1260,7 +1260,49 @@ input:focus, select:focus {
 .toggle-row {
     margin: 10px 0 8px;
 }
+/* ========== TAB BAR ========== */
+.tab-bar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 0 16px;
+    margin-bottom: 8px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
 
+.tab-bar::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tab-bar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.tab-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.tab-btn:hover {
+    background: var(--border);
+}
+
+.tab-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
 .toggle-label {
     display: inline-flex;
     align-items: center;
