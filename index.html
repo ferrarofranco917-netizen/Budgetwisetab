@@ -374,32 +374,16 @@
 <div class="section-card" data-tab="tools">
     <h2>🎨 Personalizza colori</h2>
     <div class="section-content">
-        <p style="margin-bottom: 15px; color: var(--text-secondary);">Scegli i tuoi colori preferiti per l'app.</p>
+        <p style="margin-bottom: 15px; color: var(--text-secondary);">Scegli i tuoi colori preferiti per l'app. Le modifiche sono immediate.</p>
         
         <div class="color-grid">
             <div class="color-item">
-                <label>Colore principale</label>
-                <input type="color" id="colorAccent" value="#3b82f6">
+                <label>Colore principale (accento)</label>
+                <input type="color" id="colorAccent" value="#7c3aed">
             </div>
             <div class="color-item">
-                <label>Colore secondario</label>
-                <input type="color" id="colorAccentLight" value="#60a5fa">
-            </div>
-            <div class="color-item">
-                <label>Successo (entrate)</label>
-                <input type="color" id="colorSuccess" value="#22c55e">
-            </div>
-            <div class="color-item">
-                <label>Pericolo (spese)</label>
-                <input type="color" id="colorDanger" value="#ef4444">
-            </div>
-            <div class="color-item">
-                <label>Avviso</label>
-                <input type="color" id="colorWarning" value="#f59e0b">
-            </div>
-            <div class="color-item">
-                <label>Sfondo principale</label>
-                <input type="color" id="colorBg" value="#f8fafc">
+                <label>Colore secondario (accent-light)</label>
+                <input type="color" id="colorAccentLight" value="#a78bfa">
             </div>
             <div class="color-item">
                 <label>Sfondo card</label>
@@ -411,7 +395,23 @@
             </div>
             <div class="color-item">
                 <label>Testo secondario</label>
-                <input type="color" id="colorTextSecondary" value="#475569">
+                <input type="color" id="colorTextSecondary" value="#334155">
+            </div>
+            <div class="color-item">
+                <label>Sfondo generale</label>
+                <input type="color" id="colorBg" value="#f8fafc">
+            </div>
+            <div class="color-item">
+                <label>Successo (entrate)</label>
+                <input type="color" id="colorSuccess" value="#10b981">
+            </div>
+            <div class="color-item">
+                <label>Pericolo (spese)</label>
+                <input type="color" id="colorDanger" value="#ef4444">
+            </div>
+            <div class="color-item">
+                <label>Avviso</label>
+                <input type="color" id="colorWarning" value="#f59e0b">
             </div>
             <div class="color-item">
                 <label>Bordi</label>
@@ -420,8 +420,7 @@
         </div>
         
         <div class="button-group" style="margin-top: 20px;">
-            <button id="saveColorTheme" class="btn-primary">💾 Salva tema</button>
-            <button id="resetColorTheme" class="btn-secondary">↩️ Ripristina default</button>
+            <button id="resetColorsBtn" class="btn-secondary">↩️ Ripristina colori predefiniti</button>
         </div>
     </div>
 </div>
