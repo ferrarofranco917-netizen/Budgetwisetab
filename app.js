@@ -2463,45 +2463,57 @@ class BudgetWise {
     }
     
     refreshCategoryList() {
-        const defaultList = document.getElementById('defaultCategoriesList');
-        const customList = document.getElementById('customCategoriesList');
-        
-        if (defaultList) {
-            defaultList.innerHTML = this.defaultCategories.map(cat => 
-                `<div class="category-item default"><span>${cat}</span></div>`
-            ).join('');
-        }
-        
-        if (customList) {
-            if (this.customCategories.length === 0) {
-                customList.innerHTML = `<p class="empty-message">${this.t('noCustomCategories')}</p>`;
-            } else {
-                customList.innerHTML = this.customCategories.map((cat, index) => `
-                    <div class="category-item custom">
-                        <span>${cat}</span>
-                        <div>
-                            <button class="edit-category-btn" data-index="${index}">✏️</button>
-                            <button class="delete-category-btn" data-index="${index}">🗑️</button>
-                        </div>
-                    </div>
-                `).join('');
-                
-                document.querySelectorAll('.edit-category-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const index = e.target.dataset.index;
-                        this.editCategory(parseInt(index));
-                    });
-                });
-                
-                document.querySelectorAll('.delete-category-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const index = e.target.dataset.index;
-                        this.deleteCategory(parseInt(index));
-                    });
-                });
+    const defaultList = document.getElementById('defaultCategoriesList');
+    const customList = document.getElementById('customCategoriesList');
+    
+    if (defaultList) {
+        defaultList.innerHTML = this.defaultCategories.map(cat => {
+            // Mappa il nome italiano alla chiave di traduzione corrispondente
+            let translationKey = '';
+            switch(cat) {
+                case 'Alimentari': translationKey = 'categoryAlimentari'; break;
+                case 'Trasporti': translationKey = 'categoryTrasporti'; break;
+                case 'Svago': translationKey = 'categorySvago'; break;
+                case 'Salute': translationKey = 'categorySalute'; break;
+                case 'Abbigliamento': translationKey = 'categoryAbbigliamento'; break;
+                case 'Altro': translationKey = 'categoryAltro'; break;
+                default: translationKey = cat; // fallback (non dovrebbe servire)
             }
+            const displayName = this.t(translationKey);
+            return `<div class="category-item default"><span>${displayName}</span></div>`;
+        }).join('');
+    }
+    
+    if (customList) {
+        if (this.customCategories.length === 0) {
+            customList.innerHTML = `<p class="empty-message">${this.t('noCustomCategories')}</p>`;
+        } else {
+            customList.innerHTML = this.customCategories.map((cat, index) => `
+                <div class="category-item custom">
+                    <span>${cat}</span>
+                    <div>
+                        <button class="edit-category-btn" data-index="${index}">✏️</button>
+                        <button class="delete-category-btn" data-index="${index}">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('.edit-category-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = e.target.dataset.index;
+                    this.editCategory(parseInt(index));
+                });
+            });
+            
+            document.querySelectorAll('.delete-category-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = e.target.dataset.index;
+                    this.deleteCategory(parseInt(index));
+                });
+            });
         }
     }
+}
     
     editCategory(index) {
         const oldName = this.customCategories[index];
