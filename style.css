@@ -1028,7 +1028,110 @@ input:focus, select:focus {
 #dismissAiSuggestion:hover {
     opacity: 1;
 }
+/* ========== STILI PER I SELETTORI DI COLORE ========== */
 
+/* Contenitore di ogni riga colore (già inline nel HTML, ma possiamo rafforzare) */
+.setting-item {
+    margin-bottom: 16px;
+}
+
+.setting-item label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Wrapper per il picker e il campo testo (già in flex nel HTML) */
+.setting-item > div[style*="display: flex"] {
+    display: flex !important;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Stile per l'input color nativo - lo rendiamo più grande e accattivante */
+.setting-item input[type="color"] {
+    width: 60px;
+    height: 40px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--card-bg);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.setting-item input[type="color"]:hover {
+    border-color: var(--accent);
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.setting-item input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.setting-item input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
+}
+
+/* Stile per il campo di testo affiancato (codice esadecimale) */
+.setting-item input[type="text"][id*="Text"] {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Poppins', monospace;  /* Usa monospace per i codici colore */
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.setting-item input[type="text"][id*="Text"]:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.setting-item input[type="text"][id*="Text"]:hover {
+    border-color: var(--accent-light);
+}
+
+/* Bottone ripristina colori */
+#resetColorsBtn {
+    margin-top: 8px;
+    width: 100%;
+    background: var(--bg-color);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+#resetColorsBtn:hover {
+    background: var(--border);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+/* Responsive: su schermi piccoli, impila i campi */
+@media (max-width: 480px) {
+    .setting-item > div[style*="display: flex"] {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .setting-item input[type="color"] {
+        width: 100%;
+        height: 50px;
+    }
+}
 /* ========== REVISIONE IMPORT CSV ========== */
 .modal-overlay {
     position: fixed;
