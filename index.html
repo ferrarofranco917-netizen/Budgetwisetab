@@ -88,7 +88,7 @@
         </div>
         <div class="period-source" id="periodSource"></div>
 
-        <!-- TAB BAR (nuova) -->
+        <!-- TAB BAR -->
         <div class="tab-bar">
             <button class="tab-btn active" data-tab="home">🏠 Home</button>
             <button class="tab-btn" data-tab="incomes">🏦 Entrate</button>
@@ -102,7 +102,7 @@
             👋 Inizia inserendo le tue entrate nella sezione qui sotto!
         </div>
 
-        <!-- ==================== ENTRATE ==================== -->
+        <!-- ENTRATE -->
         <div class="section-card" data-tab="incomes">
             <div class="section-header">
                 <h2 id="incomesTitle">🏦 Entrate del periodo</h2>
@@ -131,7 +131,7 @@
             </div>
         </div>
         
-        <!-- ==================== SPESE FISSE ==================== -->
+        <!-- SPESE FISSE -->
         <div class="section-card" data-tab="fixed">
             <h2 id="fixedTitle">📌 Spese fisse mensili</h2>
             <div class="section-content">
@@ -164,7 +164,7 @@
             </div>
         </div>
 
-        <!-- ==================== SPESE VARIABILI ==================== -->
+        <!-- SPESE VARIABILI -->
         <div class="section-card" data-tab="variable">
             <h2 id="variableTitle">🧾 Spese variabili</h2>
             <div class="section-content">
@@ -207,7 +207,7 @@
             </div>
         </div>
 
-        <!-- ==================== GRAFICO (HOME) ==================== -->
+        <!-- GRAFICO (HOME) -->
         <div class="section-card" data-tab="home">
             <h2 id="chartTitle">📊 Distribuzione spese</h2>
             <div class="section-content">
@@ -216,7 +216,7 @@
             </div>
         </div>
 
-        <!-- Dettaglio categoria (inizialmente nascosto) - non ha data-tab perché è un overlay -->
+        <!-- Dettaglio categoria (overlay) -->
         <div id="categoryDetail" class="category-detail" style="display: none;">
             <h3 id="detailCategoryTitle"></h3>
             <p id="detailTotal"></p>
@@ -225,7 +225,7 @@
             <button id="closeDetailBtn" class="btn-secondary">Chiudi</button>
         </div>
 
-        <!-- ==================== ASSISTENTE (HOME) ==================== -->
+        <!-- ASSISTENTE (HOME) -->
         <div class="section-card" data-tab="home">
             <h2 id="assistantTitle">🤖 Assistente Finanziario AI</h2>
             <div class="section-content">
@@ -250,7 +250,7 @@
             </div>
         </div>
 
-        <!-- ==================== WIDGET AI (HOME) ==================== -->
+        <!-- WIDGET AI (HOME) -->
         <div class="section-card" id="aiWidget" data-tab="home" style="display: none;">
             <div class="section-header">
                 <h2 id="aiWidgetTitle">🤖 Suggerimenti AI</h2>
@@ -268,7 +268,7 @@
             </div>
         </div>
 
-        <!-- ==================== RISPARMIO (TOOLS) ==================== -->
+        <!-- RISPARMIO (TOOLS) -->
         <div class="section-card" data-tab="tools">
             <h2 id="savingsTitle">🎯 Obiettivo risparmio</h2>
             <div class="section-content">
@@ -294,7 +294,7 @@
             </div>
         </div>
 
-        <!-- ==================== IMPORT CSV (TOOLS) ==================== -->
+        <!-- IMPORT CSV (TOOLS) -->
         <div class="section-card" data-tab="tools">
             <h2 id="csvTitle">📥 Importa movimenti bancari</h2>
             <div class="section-content">
@@ -331,7 +331,7 @@
             </div>
         </div>
 
-        <!-- ==================== IMPOSTAZIONI (TOOLS) ==================== -->
+        <!-- IMPOSTAZIONI (TOOLS) -->
         <div class="section-card" data-tab="tools">
             <h2 id="settingsTitle">⚙️ Impostazioni</h2>
             <div class="section-content">
@@ -361,7 +361,7 @@
             </div>
         </div>
 
-        <!-- ==================== GESTIONE CATEGORIE (TOOLS) ==================== -->
+        <!-- GESTIONE CATEGORIE (TOOLS) -->
         <div class="section-card" data-tab="tools">
             <h2 id="categoriesSectionTitle">📂 Gestione categorie</h2>
             <div class="section-content">
@@ -371,7 +371,7 @@
             </div>
         </div>
 
-        <!-- MODALE GESTIONE CATEGORIE (sempre visibile quando aperto, non ha data-tab) -->
+        <!-- MODALE GESTIONE CATEGORIE -->
         <div id="categoryManagerOverlay" class="modal-overlay" style="display: none;">
             <div class="modal-content" style="max-width: 500px;">
                 <h3 id="manageCategoriesTitle">📂 Gestisci categorie</h3>
@@ -404,7 +404,7 @@
         </div>
     </div>
 
-    <!-- Service Worker + check icone (1 sola volta) -->
+    <!-- Service Worker e check icone -->
     <script>
       window.addEventListener("load", async () => {
         fetch("./icon-192.png")
