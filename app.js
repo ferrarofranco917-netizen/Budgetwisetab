@@ -3577,177 +3577,115 @@ const app = new BudgetWise();
 window.app = app;
 
 // ============================================
-// GESTIONE IMPORT CSV/EXCEL
+// GESTIONE IMPORT CSV/EXCEL (VERSIONE SEMPLIFICATA)
 // ============================================
 setTimeout(function() {
     const btn = document.getElementById('importCsvBtn');
     const fileInput = document.getElementById('csvFile');
-    const sheetSelect = document.getElementById('excelSheet');
-    const headerSelect = document.getElementById('excelHeaderRow');
     const fileNameSpan = document.getElementById('csvFileName');
-    const skipRowsInput = document.getElementById('skipRows');
-    const headerRowInput = document.getElementById('headerRowManual');
-    
-    console.log('🔧 Inizializzazione gestione import...', { btn, fileInput, sheetSelect });
     
     if (!btn || !fileInput || !window.app) {
-        console.error('❌ Elementi import non trovati');
+        console.error('Elementi import non trovati');
         return;
     }
 
-    // Variabile per tenere traccia del file Excel in attesa
-    window._pendingExcelFile = null;
+    // Al click sul pulsante, attiva l'input file
+    btn.addEventListener('click', function() {
+        fileInput.click();
+    });
 
-    // Gestione cambio file
+    // Quando un file viene selezionato
     fileInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
-        console.log('📁 File selezionato:', file?.name);
-        
-        if (!file) {
-            fileNameSpan.textContent = 'Nessun file selezionato';
-            return;
-        }
+        if (!file) return;
         
         fileNameSpan.textContent = file.name;
         
         const fileExt = file.name.split('.').pop().toLowerCase();
         const isExcel = ['xls', 'xlsx'].includes(fileExt);
         
-        console.log('🔍 Estensione:', fileExt, 'è Excel?', isExcel);
-        
-        if (isExcel) {
-            // Verifica che SheetJS sia caricato
-            if (typeof XLSX === 'undefined') {
-                alert('❌ Libreria Excel non caricata. Ricarica la pagina.');
-                return;
-            }
-            
-            sheetSelect.innerHTML = '<option value="">Caricamento...</option>';
-            sheetSelect.disabled = true;
-            
-            try {
+        try {
+            if (isExcel) {
+                // Per Excel, usiamo un alert semplice
+                if (typeof XLSX === 'undefined') {
+                    alert('❌ Libreria Excel non caricata. Ricarica la pagina.');
+                    return;
+                }
+                
+                // Leggi il file Excel
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                     try {
-                        console.log('📊 Lettura file Excel completata');
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
                         
-                        console.log('📑 Fogli trovati:', workbook.SheetNames);
+                        // Prendi il primo foglio
+                        const firstSheet = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheet];
                         
-                        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                            alert('❌ Il file Excel non contiene fogli');
+                        // Converti in JSON (array di array)
+                        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (rows.length < 2) {
+                            alert('❌ Il file Excel non contiene dati sufficienti');
                             return;
                         }
                         
-                        sheetSelect.innerHTML = workbook.SheetNames.map((name, index) => 
-                            `<option value="${index}">${index+1}. ${name}</option>`
-                        ).join('');
-                        sheetSelect.disabled = false;
-                        sheetSelect.value = '0';
+                        // La prima riga sono le intestazioni
+                        const headers = rows[0];
+                        const dataRows = rows.slice(1);
                         
-                        // IMPOSTA IL FILE IN ATTESA
-                        window._pendingExcelFile = file;
-                        console.log('✅ File Excel in attesa:', window._pendingExcelFile.name);
+                        // Converti in formato CSV
+                        const csvContent = [headers, ...dataRows]
+                            .map(row => row.map(cell => String(cell).trim()).join(','))
+                            .join('\n');
                         
-                        alert('✅ File Excel caricato. Seleziona il foglio e premi "Importa CSV/Excel"');
+                        // Crea un file virtuale
+                        const virtualFile = new File([csvContent], 'temp.csv', { type: 'text/csv' });
+                        
+                        // Importa come CSV
+                        const delimiter = document.getElementById('csvSeparator').value;
+                        const dateFormat = document.getElementById('csvDelimiter').value;
+                        
+                        btn.textContent = '⏳ Importazione...';
+                        btn.disabled = true;
+                        
+                        await window.app.parseCSV(virtualFile, delimiter, dateFormat);
+                        
+                        alert('✅ Import Excel completato!');
                         
                     } catch (err) {
-                        console.error('❌ Errore parsing Excel:', err);
-                        alert('❌ Errore nella lettura del file Excel: ' + err.message);
+                        alert('❌ Errore lettura Excel: ' + err.message);
+                    } finally {
+                        btn.textContent = '📥 Importa CSV/Excel';
+                        btn.disabled = false;
+                        fileInput.value = '';
+                        fileNameSpan.textContent = 'Nessun file selezionato';
                     }
                 };
                 reader.readAsArrayBuffer(file);
                 
-            } catch (error) {
-                console.error('❌ Errore lettura file:', error);
-                alert('❌ Errore nella lettura del file Excel: ' + error.message);
-            }
-        } else {
-            // CSV: reset selettore fogli
-            sheetSelect.innerHTML = '<option value="">Carica un file Excel</option>';
-            sheetSelect.disabled = true;
-            window._pendingExcelFile = null;
-            console.log('📄 File CSV selezionato, pronto per import');
-        }
-    });
-
-    // Gestione click pulsante Importa
-    btn.addEventListener('click', async function() {
-        console.log('🖱️ Click su Importa');
-        
-        const file = fileInput.files[0];
-        const pendingFile = window._pendingExcelFile;
-        
-        console.log('📁 fileInput.files[0]:', file?.name);
-        console.log('📁 pendingFile:', pendingFile?.name);
-        
-        if (!file && !pendingFile) {
-            alert('❌ Seleziona prima un file CSV o Excel');
-            return;
-        }
-        
-        const fileToImport = pendingFile || file;
-        console.log('📄 File da importare:', fileToImport.name);
-        
-        const fileExt = fileToImport.name.split('.').pop().toLowerCase();
-        const isExcel = ['xls', 'xlsx'].includes(fileExt);
-        
-        console.log('🔍 Estensione:', fileExt, 'è Excel?', isExcel);
-        
-        try {
-            if (isExcel) {
-                if (!sheetSelect || sheetSelect.disabled) {
-                    alert('Attendi il caricamento del file Excel');
-                    return;
-                }
-                
-                const sheetIndex = parseInt(sheetSelect.value);
-                console.log('📑 Foglio selezionato:', sheetIndex);
-                
-                if (isNaN(sheetIndex) || sheetIndex < 0) {
-                    alert('Seleziona un foglio Excel valido');
-                    return;
-                }
-                
-                const headerRow = parseInt(headerSelect.value);
-                console.log('📏 Riga intestazione:', headerRow);
-                
-                btn.textContent = '⏳ Importazione in corso...';
-                btn.disabled = true;
-                
-                await window.app.parseExcel(fileToImport, sheetIndex, headerRow);
-                
-                // Resetta dopo import riuscito
-                window._pendingExcelFile = null;
-                fileInput.value = '';
-                fileNameSpan.textContent = 'Nessun file selezionato';
-                sheetSelect.innerHTML = '<option value="">Carica un file Excel</option>';
-                sheetSelect.disabled = true;
-                
             } else {
+                // Import CSV normale
                 const delimiter = document.getElementById('csvSeparator').value;
                 const dateFormat = document.getElementById('csvDelimiter').value;
-                const skipRows = parseInt(skipRowsInput?.value || '0');
-                const headerRow = parseInt(headerRowInput?.value || '1');
+                const skipRows = parseInt(document.getElementById('skipRows')?.value || '0');
+                const headerRow = parseInt(document.getElementById('headerRowManual')?.value || '1');
                 
-                console.log('📄 Import CSV:', { delimiter, dateFormat, skipRows, headerRow });
-                
-                btn.textContent = '⏳ Importazione in corso...';
+                btn.textContent = '⏳ Importazione...';
                 btn.disabled = true;
                 
-                await window.app.parseCSV(fileToImport, delimiter, dateFormat, skipRows, headerRow);
+                await window.app.parseCSV(file, delimiter, dateFormat, skipRows, headerRow);
                 
+                alert('✅ Import CSV completato!');
+                btn.textContent = '📥 Importa CSV/Excel';
+                btn.disabled = false;
                 fileInput.value = '';
                 fileNameSpan.textContent = 'Nessun file selezionato';
             }
             
-            alert('✅ Import completato con successo!');
-            
         } catch (error) {
-            console.error('❌ Errore import:', error);
-            alert('❌ Errore durante l\'import: ' + error.message);
-        } finally {
+            alert('❌ Errore: ' + error.message);
             btn.textContent = '📥 Importa CSV/Excel';
             btn.disabled = false;
         }
