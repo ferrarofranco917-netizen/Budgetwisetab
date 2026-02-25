@@ -2741,9 +2741,14 @@ class BudgetWise {
             
             importedExpenses.forEach((exp, index) => {
                 const select = document.querySelector(`.review-select[data-index="${index}"]`);
+                            
+                            const importedExpenses = [];
+            
+            const tempIncomes = []; // Array temporaneo per le entrate
                 if (select) {
                     select.value = exp.category;
                 }
+                
             });
             
             overlay.style.display = 'flex';
@@ -2923,7 +2928,7 @@ class BudgetWise {
         });
     }
     
-    // ========== IMPORT CSV CON MAPPATURA ==========
+        // ========== IMPORT CSV CON MAPPATURA E REVISIONE ==========
     async parseCSV(file, delimiter, dateFormat, skipRows = 0, headerRow = 1) {
         console.log('📥 Inizio import CSV:', file.name, 'delimiter:', delimiter, 'dateFormat:', dateFormat, 'skipRows:', skipRows, 'headerRow:', headerRow);
         
@@ -2949,6 +2954,7 @@ class BudgetWise {
             
             const lines = allLines.slice(dataStartLine);
             const importedExpenses = [];
+            const tempIncomes = []; // Array temporaneo per le entrate
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
@@ -2988,8 +2994,7 @@ class BudgetWise {
                 if (!category) category = this.suggestCategory(description);
                 
                 if (amount > 0) {
-                    if (!this.data.incomes) this.data.incomes = [];
-                    this.data.incomes.push({
+                    tempIncomes.push({
                         desc: description,
                         amount: amount,
                         date: dateStr,
@@ -3008,8 +3013,11 @@ class BudgetWise {
             }
             
             if (importedExpenses.length > 0) {
+                // MOSTRA LA FINESTRA DI REVISIONE
                 const reviewed = await this.showImportReview(importedExpenses);
+                
                 if (reviewed.length > 0) {
+                    // Salva le spese revisionate
                     for (const exp of reviewed) {
                         if (!this.data.variableExpenses) this.data.variableExpenses = {};
                         if (!this.data.variableExpenses[exp.date]) this.data.variableExpenses[exp.date] = [];
@@ -3020,6 +3028,13 @@ class BudgetWise {
                             id: exp.id
                         });
                     }
+                    
+                    // Salva anche le entrate (se ce ne sono)
+                    if (tempIncomes.length > 0) {
+                        if (!this.data.incomes) this.data.incomes = [];
+                        this.data.incomes.push(...tempIncomes);
+                    }
+                    
                     this.saveData();
                     this.updateUI();
                     this.updateChart();
@@ -3040,12 +3055,31 @@ class BudgetWise {
                     alert(this.t('importCancelled'));
                 }
             } else {
-                this.saveData();
-                this.updateUI();
-                this.updateChart();
-                alert(this.data.language === 'it' ? '✅ File importato con successo!' : '✅ File imported successfully!');
+                // Se non ci sono spese ma ci sono entrate
+                if (tempIncomes.length > 0) {
+                    if (!this.data.incomes) this.data.incomes = [];
+                    this.data.incomes.push(...tempIncomes);
+                    this.saveData();
+                    this.updateUI();
+                    alert(this.data.language === 'it' 
+                        ? `✅ Importate ${tempIncomes.length} entrate!` 
+                        : `✅ Imported ${tempIncomes.length} incomes!`);
+                } else {
+                    this.saveData();
+                    this.updateUI();
+                    this.updateChart();
+                    alert(this.data.language === 'it' ? '✅ File importato con successo!' : '✅ File imported successfully!');
+                }
             }
         };
+        
+        reader.onerror = () => {
+            console.error('❌ Errore lettura file');
+            alert(this.t('fileReadError'));
+        };
+        
+        reader.readAsText(file);
+    }
         
         reader.onerror = () => {
             console.error('❌ Errore lettura file');
