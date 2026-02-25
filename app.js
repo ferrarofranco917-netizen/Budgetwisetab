@@ -2357,45 +2357,7 @@ class BudgetWise {
         }
     }
         
-        // Bottone reset
-        const resetBtn = document.getElementById('resetColorsBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                this.customColors = {
-                    accent: '#3b82f6',
-                    accentLight: '#60a5fa',
-                    cardBg: '#ffffff',
-                    textPrimary: '#0f172a',
-                    textSecondary: '#475569',
-                    bg: '#f8fafc'
-                };
-                this.applyCustomColors();
-                this.saveCustomColors();
-                this.syncColorPickers();
-                this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
-            });
-        }
-    }
-               
-        // Bottone reset
-        const resetBtn = document.getElementById('resetColorsBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                this.customColors = {
-                    accent: '#3b82f6',
-                    accentLight: '#60a5fa',
-                    cardBg: '#ffffff',
-                    textPrimary: '#0f172a',
-                    textSecondary: '#475569',
-                    bg: '#f8fafc'
-                };
-                this.applyCustomColors();
-                this.saveCustomColors();
-                this.syncColorPickers();
-                this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
-            });
-        }
-    }
+        
     saveData() {
         localStorage.setItem('budgetwise-data', JSON.stringify(this.data));
     }
