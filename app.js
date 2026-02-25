@@ -3524,29 +3524,107 @@ const app = new BudgetWise();
 window.app = app;
 
 // ============================================
-// FIX: Pulsante Importa CSV
+// GESTIONE IMPORT CSV/EXCEL
 // ============================================
 setTimeout(function() {
     const btn = document.getElementById('importCsvBtn');
-    if (!btn || !window.app) return;
+    const fileInput = document.getElementById('csvFile');
+    const sheetSelect = document.getElementById('excelSheet');
+    const headerSelect = document.getElementById('excelHeaderRow');
+    const fileNameSpan = document.getElementById('csvFileName');
     
-    btn.addEventListener('click', function() {
-        document.getElementById('csvFile').click();
-    });
-    
-    document.getElementById('csvFile').addEventListener('change', function(e) {
+    if (!btn || !fileInput || !window.app) return;
+
+    // Variabile per tenere traccia del file Excel in attesa
+    window._pendingExcelFile = null;
+
+    // Gestione cambio file
+    fileInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (!file) return;
         
-        document.getElementById('csvFileName').textContent = file.name;
+        fileNameSpan.textContent = file.name;
         
-        const delimiter = document.getElementById('csvSeparator').value;
-        const dateFormat = document.getElementById('csvDelimiter').value;
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const isExcel = ['xls', 'xlsx'].includes(fileExt);
         
-        if (window.app.parseCSV) {
-            window.app.parseCSV(file, delimiter, dateFormat);
+        if (isExcel) {
+            // Abilita il select dei fogli
+            sheetSelect.innerHTML = '<option value="">Caricamento...</option>';
+            sheetSelect.disabled = true;
+            
+            try {
+                // Leggi i nomi dei fogli
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    sheetSelect.innerHTML = workbook.SheetNames.map((name, index) => 
+                        `<option value="${index}">${index+1}. ${name}</option>`
+                    ).join('');
+                    sheetSelect.disabled = false;
+                    
+                    // Auto-seleziona il primo foglio
+                    sheetSelect.value = '0';
+                };
+                reader.readAsArrayBuffer(file);
+                
+                // Salva il file per dopo
+                window._pendingExcelFile = file;
+                
+                alert('✅ File Excel caricato. Seleziona il foglio e premi "Importa CSV/Excel"');
+                
+            } catch (error) {
+                alert('❌ Errore nella lettura del file Excel: ' + error.message);
+            }
         } else {
-            alert('❌ Funzione parseCSV non trovata!');
+            // CSV: reset selettore fogli
+            sheetSelect.innerHTML = '<option value="">Carica un file Excel</option>';
+            sheetSelect.disabled = true;
+            window._pendingExcelFile = null;
         }
     });
+
+    // Gestione click pulsante Importa
+    btn.addEventListener('click', async function() {
+        const file = fileInput.files[0];
+        
+        if (!file && !window._pendingExcelFile) {
+            alert('Seleziona prima un file');
+            return;
+        }
+        
+        const fileToImport = window._pendingExcelFile || file;
+        const fileExt = fileToImport.name.split('.').pop().toLowerCase();
+        const isExcel = ['xls', 'xlsx'].includes(fileExt);
+        
+        if (isExcel) {
+            const sheetIndex = parseInt(sheetSelect.value || '0');
+            const headerRow = parseInt(headerSelect.value);
+            
+            try {
+                await window.app.parseExcel(fileToImport, sheetIndex, headerRow);
+                // Resetta
+                window._pendingExcelFile = null;
+                fileInput.value = '';
+                fileNameSpan.textContent = 'Nessun file selezionato';
+                sheetSelect.innerHTML = '<option value="">Carica un file Excel</option>';
+                sheetSelect.disabled = true;
+            } catch (error) {
+                alert(error);
+            }
+        } else {
+            const delimiter = document.getElementById('csvSeparator').value;
+            const dateFormat = document.getElementById('csvDelimiter').value;
+            
+            if (window.app.parseCSV) {
+                await window.app.parseCSV(fileToImport, delimiter, dateFormat);
+                fileInput.value = '';
+                fileNameSpan.textContent = 'Nessun file selezionato';
+            }
+        }
+    });
+    
 }, 2000);
+
