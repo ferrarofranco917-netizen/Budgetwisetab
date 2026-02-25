@@ -41,6 +41,10 @@ class BudgetWise {
         // ========== TRADUZIONI ==========
         this.translations = {
             it: {
+                excelSheetLabel: 'Foglio Excel',
+excelHeaderLabel: 'Riga intestazione',
+excelHelp: '📌 I file Excel vengono convertiti automaticamente',
+csvExcelButton: '📥 Importa CSV/Excel',
                 resetColors: 'Ripristina colori predefiniti',
                 budget: 'Budget giornaliero',
                 remaining: 'Rimanenza',
@@ -245,6 +249,10 @@ class BudgetWise {
                 close: 'Chiudi',
             },
             en: {
+                excelSheetLabel: 'Excel Sheet',
+excelHeaderLabel: 'Header row',
+excelHelp: '📌 Excel files are automatically converted',
+csvExcelButton: '📥 Import CSV/Excel',
                 resetColors: 'Reset default colors',
                 budget: 'Daily budget',
                 remaining: 'Remaining',
@@ -449,6 +457,10 @@ class BudgetWise {
                 close: 'Close',
             },
             es: {
+                excelSheetLabel: 'Hoja Excel',
+excelHeaderLabel: 'Fila de encabezado',
+excelHelp: '📌 Los archivos Excel se convierten automáticamente',
+csvExcelButton: '📥 Importar CSV/Excel',
                 resetColors: 'Restablecer colores predeterminados',
                 budget: 'Presupuesto diario',
                 remaining: 'Restante',
@@ -643,6 +655,10 @@ class BudgetWise {
                 edit: 'Editar'
             },
             fr: {
+                excelSheetLabel: 'Feuille Excel',
+excelHeaderLabel: 'Ligne d\'en-tête',
+excelHelp: '📌 Les fichiers Excel sont convertis automatiquement',
+csvExcelButton: '📥 Importer CSV/Excel',
                 resetColors: 'Réinitialiser les couleurs par défaut',
                 budget: 'Budget journalier',
                 remaining: 'Reste',
@@ -1303,7 +1319,15 @@ class BudgetWise {
             const closeCatBtn = document.getElementById('closeCategoryManager');
             if (closeCatBtn) closeCatBtn.textContent = this.t('close');
         }
-
+// Traduzioni per Excel
+const excelSheetLabel = document.getElementById('excelSheetLabel');
+if (excelSheetLabel) excelSheetLabel.textContent = this.t('excelSheetLabel');
+const excelHeaderLabel = document.getElementById('excelHeaderLabel');
+if (excelHeaderLabel) excelHeaderLabel.textContent = this.t('excelHeaderLabel');
+const excelHelp = document.getElementById('excelHelp');
+if (excelHelp) excelHelp.textContent = this.t('excelHelp');
+const importCsvBtn = document.getElementById('importCsvBtn');
+if (importCsvBtn) importCsvBtn.innerHTML = this.t('csvExcelButton');
         // Traduci i bottoni dei tab
         const tabButtons = document.querySelectorAll('.tab-btn');
         if (tabButtons.length >= 5) {
