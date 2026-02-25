@@ -2919,14 +2919,6 @@ class BudgetWise {
                 newConfirm.addEventListener('click', onConfirm);
                 newCancel.addEventListener('click', onCancel);
             };
-            
-            reader.onerror = () => {
-                resolve(null);
-            };
-            
-            reader.readAsText(file);
-        });
-    }
     
         // ========== IMPORT CSV CON MAPPATURA E REVISIONE ==========
     async parseCSV(file, delimiter, dateFormat, skipRows = 0, headerRow = 1) {
