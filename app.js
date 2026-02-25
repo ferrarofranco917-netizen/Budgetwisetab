@@ -1703,7 +1703,7 @@ class BudgetWise {
         document.getElementById('backupBtn').addEventListener('click', () => this.backupData());
         document.getElementById('restoreBtn').addEventListener('click', () => document.getElementById('restoreFile').click());
         document.getElementById('restoreFile').addEventListener('change', (e) => this.restoreData(e));
-        document.getElementById('resetAllBtn').addEventListener('click', () => this.resetAll());
+        document.getElementById('resetAllBtn').addEventListener('click', () => this.;
         document.getElementById('exportCalendarBtn').addEventListener('click', () => this.exportToCalendar());
         document.getElementById('sendChatBtn').addEventListener('click', () => this.handleChatInput());
         document.getElementById('chatInput').addEventListener('keypress', (e) => {
@@ -2428,42 +2428,6 @@ class BudgetWise {
         reader.readAsText(file);
     }
 
-    resetAll() {
-        if (confirm(this.t('confirmReset'))) {
-            localStorage.clear();
-            const today = new Date();
-            const end = new Date(today);
-            end.setDate(today.getDate() + 28);
-            
-            this.data = {
-                incomes: [],
-                fixedExpenses: [],
-                variableExpenses: {},
-                savingsPercent: 0,
-                savingsGoal: 0,
-                threshold: 50,
-                language: this.data.language,
-                periodStart: today.toISOString().split('T')[0],
-                periodEnd: end.toISOString().split('T')[0]
-            };
-            this.updateUI();
-            this.updateChart();
-            this.applyLanguage();
-            alert(this.t('resetCompleted'));
-                // Resetta anche i colori personalizzati (se desideri)
-    this.customColors = {
-        accent: '#3b82f6',
-        accentLight: '#60a5fa',
-        cardBg: '#ffffff',
-        textPrimary: '#0f172a',
-        textSecondary: '#475569',
-        bg: '#f8fafc'
-    };
-    this.applyCustomColors();
-    this.saveCustomColors();
-    this.syncColorPickers();
-        }
-    }
     resetAll() {
         if (confirm(this.t('confirmReset'))) {
             localStorage.clear();
