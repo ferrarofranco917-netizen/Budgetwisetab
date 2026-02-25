@@ -880,11 +880,21 @@ class BudgetWise {
     }
 
     getDefaultPeriodStart() {
+        // Default: start from last salary income (if available), otherwise today
+        const salary = this.findLastSalaryIncome();
+        if (salary && salary.date) return this.normalizeIsoDate(salary.date);
         const today = new Date();
         return today.toISOString().split('T')[0];
     }
 
     getDefaultPeriodEnd() {
+        // Default: next salary date (one month after last salary), otherwise +28 days
+        const salary = this.findLastSalaryIncome();
+        if (salary && salary.date) {
+            const start = this.normalizeIsoDate(salary.date);
+            const next = this.addMonthsClamp(start, 1);
+            return next;
+        }
         const end = new Date();
         end.setDate(end.getDate() + 28);
         return end.toISOString().split('T')[0];
@@ -902,6 +912,79 @@ class BudgetWise {
         }
         return s;
     }
+
+
+    // ==================== PERIODO BASATO SU STIPENDIO ====================
+    isSalaryIncome(inc) {
+        if (!inc) return false;
+        const desc = String(inc.desc || '').toLowerCase();
+        // Parole chiave comuni (puoi aggiungerne altre)
+        return /stipend|mensilit|payroll|salary|cedolin/.test(desc);
+    }
+
+    findLastSalaryIncome() {
+        if (!this.data.incomes || !Array.isArray(this.data.incomes)) return null;
+        const today = new Date();
+        const candidates = this.data.incomes
+            .filter(inc => inc && inc.date && this.isSalaryIncome(inc))
+            .map(inc => ({ ...inc, _d: new Date(this.normalizeIsoDate(inc.date)) }))
+            .filter(inc => !isNaN(inc._d.getTime()) && inc._d <= today)
+            .sort((a, b) => a._d - b._d);
+        return candidates.length ? candidates[candidates.length - 1] : null;
+    }
+
+    // Aggiunge mesi mantenendo il "giorno stipendio"; se il mese non ha quel giorno, usa l'ultimo giorno del mese
+    addMonthsClamp(isoDate, monthsToAdd) {
+        const d = new Date(this.normalizeIsoDate(isoDate));
+        if (isNaN(d.getTime())) return '';
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        const day = d.getDate();
+        const targetMonth = m + (monthsToAdd || 0);
+        const ty = y + Math.floor(targetMonth / 12);
+        const tm = ((targetMonth % 12) + 12) % 12;
+        const lastDay = new Date(ty, tm + 1, 0).getDate();
+        const dd = Math.min(day, lastDay);
+        const out = new Date(ty, tm, dd);
+        return out.toISOString().split('T')[0];
+    }
+
+    ensureSalaryPeriod() {
+        const lastSalary = this.findLastSalaryIncome();
+        if (!lastSalary || !lastSalary.date) return;
+
+        const start = this.normalizeIsoDate(lastSalary.date);
+        const nextSalary = this.addMonthsClamp(start, 1);
+
+        // Aggiorna solo se non impostato o se ancora in default
+        if (!this.data.periodStart || !this.data.periodEnd) {
+            this.data.periodStart = start;
+            this.data.periodEnd = nextSalary;
+            return;
+        }
+
+        // Se il periodo attuale non è coerente (es. start==oggi e end==oggi+28), riallinea
+        const ps = this.normalizeIsoDate(this.data.periodStart);
+        const pe = this.normalizeIsoDate(this.data.periodEnd);
+
+        const looksDefault =
+            ps === new Date().toISOString().split('T')[0] &&
+            Math.abs((new Date(pe) - new Date(ps)) / (1000 * 60 * 60 * 24) - 28) < 2;
+
+        if (looksDefault || new Date(pe) <= new Date(ps)) {
+            this.data.periodStart = start;
+            this.data.periodEnd = nextSalary;
+        }
+    }
+
+    isDateInPeriod(isoDate) {
+        const d = new Date(this.normalizeIsoDate(isoDate));
+        const start = new Date(this.normalizeIsoDate(this.data.periodStart));
+        const end = new Date(this.normalizeIsoDate(this.data.periodEnd));
+        if ([d, start, end].some(x => isNaN(x.getTime()))) return false;
+        return d >= start && d <= end;
+    }
+
 
     // ==================== FIRST RUN / DEMO DATA ====================
     isFirstRun() {
@@ -1413,38 +1496,66 @@ class BudgetWise {
     // ========== CALCOLI CON CONTROLLI ==========
     calculateTotalIncome() {
         if (!this.data.incomes || !Array.isArray(this.data.incomes)) return 0;
-        return this.data.incomes.reduce((sum, inc) => sum + (inc.amount || 0), 0);
+        // Somma solo le entrate nel periodo [periodStart, periodEnd]
+        return this.data.incomes.reduce((sum, inc) => {
+            const d = this.normalizeIsoDate(inc.date);
+            if (!d || !this.isDateInPeriod(d)) return sum;
+            return sum + (inc.amount || 0);
+        }, 0);
     }
 
     calculateTotalVariableExpenses() {
         if (!this.data.variableExpenses || typeof this.data.variableExpenses !== 'object') return 0;
         let total = 0;
-        Object.values(this.data.variableExpenses).forEach(day => {
+        Object.entries(this.data.variableExpenses).forEach(([date, day]) => {
+            const d = this.normalizeIsoDate(date);
+            if (!d || !this.isDateInPeriod(d)) return;
             if (Array.isArray(day)) {
                 day.forEach(exp => total += (exp.amount || 0));
             }
         });
         return total;
     }
+        });
+        return total;
+    }
 
     calculateTotalFixedExpenses() {
         if (!this.data.fixedExpenses || !Array.isArray(this.data.fixedExpenses)) return 0;
-        
-        const today = new Date();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-        
-        return this.data.fixedExpenses.reduce((sum, exp) => {
-            if (!exp || !exp.endDate || !exp.day) return sum;
-            
-            const endDate = new Date(exp.endDate);
-            if (endDate < today) return sum;
-            
-            const paymentDate = new Date(currentYear, currentMonth, exp.day);
-            if (paymentDate > today) return sum;
-            
-            return sum + (exp.amount || 0);
-        }, 0);
+
+        const start = new Date(this.normalizeIsoDate(this.data.periodStart));
+        const end = new Date(this.normalizeIsoDate(this.data.periodEnd));
+        if ([start, end].some(d => isNaN(d.getTime()))) return 0;
+
+        // Scorre i mesi compresi nel periodo e include le scadenze che cadono nel periodo
+        const months = [];
+        const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+        const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+        while (cursor <= endMonth) {
+            months.push({ y: cursor.getFullYear(), m: cursor.getMonth() });
+            cursor.setMonth(cursor.getMonth() + 1);
+        }
+
+        let total = 0;
+
+        for (const exp of this.data.fixedExpenses) {
+            if (!exp || !exp.day) continue;
+
+            const expEnd = exp.endDate ? new Date(this.normalizeIsoDate(exp.endDate)) : null;
+
+            for (const mm of months) {
+                const lastDay = new Date(mm.y, mm.m + 1, 0).getDate();
+                const dueDay = Math.min(parseInt(exp.day, 10) || 1, lastDay);
+                const dueDate = new Date(mm.y, mm.m, dueDay);
+
+                if (dueDate < start || dueDate > end) continue;
+                if (expEnd && dueDate > expEnd) continue;
+
+                total += (exp.amount || 0);
+            }
+        }
+
+        return total;
     }
 
     calculateRemaining() {
@@ -1779,6 +1890,8 @@ class BudgetWise {
     }
 
     updateUI() {
+        // Allinea automaticamente il periodo all'ultimo stipendio (se presente)
+        this.ensureSalaryPeriod();
         document.getElementById('dailyBudget').textContent = this.formatCurrency(this.calculateDailyBudget());
         document.getElementById('remaining').textContent = this.formatCurrency(this.calculateRemaining());
         document.getElementById('daysLeft').textContent = this.getDaysLeft();
