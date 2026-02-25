@@ -2,7 +2,7 @@
 // Works for browser + installed PWA (GitHub Pages friendly)
 
 const CACHE_VERSION = "v6";                 // <- aumenta a v6, v7... ad ogni release
-const CACHE_NAME = `budgetwise-${CACHE_VERSION}`;
+const CACHE_NAME = "budgetwise-cache-20260225v6";
 
 const CORE_ASSETS = [
   "./",

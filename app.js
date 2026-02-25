@@ -1516,8 +1516,6 @@ class BudgetWise {
         });
         return total;
     }
-        return total;
-    }
 
     calculateTotalFixedExpenses() {
         if (!this.data.fixedExpenses || !Array.isArray(this.data.fixedExpenses)) return 0;
