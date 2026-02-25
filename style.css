@@ -1453,3 +1453,7 @@ input:focus, select:focus {
     margin-top: 4px;
     font-style: italic;
 }
+/* Stili per i nuovi input numerici */
+#skipRows, #headerRowManual {
+    width: 100%;
+}
