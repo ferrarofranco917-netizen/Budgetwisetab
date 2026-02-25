@@ -30,20 +30,15 @@ class BudgetWise {
         // ========== UI STATE ==========
         // Mostra tutte le spese variabili del periodo (non solo del giorno selezionato)
         this.showAllExpenses = localStorage.getItem('budgetwise-show-all-expenses') === 'true';
-                       // ========== COLORI PERSONALIZZATI ==========
-        this.DEFAULT_COLORS = {
-            accent: '#7c3aed',
-            accentLight: '#a78bfa',
-            cardBg: '#ffffff',
-            textPrimary: '#0f172a',
-            textSecondary: '#334155',
-            bg: '#f8fafc',
-            success: '#10b981',
-            danger: '#ef4444',
-            warning: '#f59e0b',
-            border: '#e2e8f0'
-        };
-        this.customColors = JSON.parse(localStorage.getItem('budgetwise-custom-colors')) || { ...this.DEFAULT_COLORS };
+                             // ========== COLORI PERSONALIZZATI ==========
+        const savedColors = localStorage.getItem('budgetwise-custom-colors');
+        if (savedColors) {
+            this.customColors = JSON.parse(savedColors);
+        } else {
+            // Nessuna personalizzazione: partiamo dai colori del tema corrente
+            // ma li inizializzeremo dopo che il DOM è pronto (in applyCustomColors)
+            this.customColors = null;
+        }
         // ========== TRADUZIONI ==========
         this.translations = {
             it: {
@@ -2287,7 +2282,11 @@ class BudgetWise {
             document.getElementById('themeToggle').textContent = '☀️';
         }
     }
-        applyCustomColors() {
+            applyCustomColors() {
+        // Se non ci sono colori personalizzati, li inizializziamo con i colori correnti del tema
+        if (!this.customColors) {
+            this.customColors = this.getCurrentThemeColors();
+        }
         document.documentElement.style.setProperty('--accent', this.customColors.accent);
         document.documentElement.style.setProperty('--accent-light', this.customColors.accentLight);
         document.documentElement.style.setProperty('--card-bg', this.customColors.cardBg);
@@ -2303,7 +2302,21 @@ class BudgetWise {
         
         this.syncColorPickers();
     }
-
+    getCurrentThemeColors() {
+        const style = getComputedStyle(document.documentElement);
+        return {
+            accent: style.getPropertyValue('--accent').trim() || '#7c3aed',
+            accentLight: style.getPropertyValue('--accent-light').trim() || '#a78bfa',
+            cardBg: style.getPropertyValue('--card-bg').trim() || '#ffffff',
+            textPrimary: style.getPropertyValue('--text-primary').trim() || '#0f172a',
+            textSecondary: style.getPropertyValue('--text-secondary').trim() || '#334155',
+            bg: style.getPropertyValue('--bg-color').trim() || '#f8fafc',
+            success: style.getPropertyValue('--success').trim() || '#10b981',
+            danger: style.getPropertyValue('--danger').trim() || '#ef4444',
+            warning: style.getPropertyValue('--warning').trim() || '#f59e0b',
+            border: style.getPropertyValue('--border').trim() || '#e2e8f0'
+        };
+    }
     syncColorPickers() {
         const setField = (id, value) => {
             const input = document.getElementById(id);
@@ -2344,19 +2357,7 @@ class BudgetWise {
                 });
             }
         });
-        
-        const resetBtn = document.getElementById('resetColorsBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                this.customColors = { ...this.DEFAULT_COLORS };
-                this.applyCustomColors();
-                this.saveCustomColors();
-                this.syncColorPickers();
-                this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
-            });
-        }
-    }
-        
+              
         
     saveData() {
         localStorage.setItem('budgetwise-data', JSON.stringify(this.data));
@@ -2428,7 +2429,7 @@ class BudgetWise {
         reader.readAsText(file);
     }
 
-    resetAll() {
+        resetAll() {
         if (confirm(this.t('confirmReset'))) {
             localStorage.clear();
             const today = new Date();
@@ -2447,7 +2448,7 @@ class BudgetWise {
                 periodEnd: end.toISOString().split('T')[0]
             };
             // Resetta anche i colori personalizzati
-            this.customColors = { ...this.DEFAULT_COLORS };
+            this.customColors = this.getCurrentThemeColors();
             this.applyCustomColors();
             this.saveCustomColors();
             this.syncColorPickers();
