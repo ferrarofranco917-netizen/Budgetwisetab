@@ -3047,7 +3047,7 @@ class BudgetWise {
                     alert(this.t('importCancelled'));
                 }
             } else {
-                // Se non ci sono spese ma ci sono entrate
+                                // Se non ci sono spese ma ci sono entrate
                 if (tempIncomes.length > 0) {
                     if (!this.data.incomes) this.data.incomes = [];
                     this.data.incomes.push(...tempIncomes);
@@ -3064,14 +3064,6 @@ class BudgetWise {
                 }
             }
         };
-        
-        reader.onerror = () => {
-            console.error('❌ Errore lettura file');
-            alert(this.t('fileReadError'));
-        };
-        
-        reader.readAsText(file);
-    }
         
         reader.onerror = () => {
             console.error('❌ Errore lettura file');
@@ -3705,3 +3697,4 @@ setTimeout(function() {
     });
     
 }, 2000);
+           
