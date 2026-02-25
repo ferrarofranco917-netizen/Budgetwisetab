@@ -43,7 +43,10 @@ class BudgetWise {
             this.customColors = null;
         }
 
-        // ========== TRADUZIONI ==========
+        
+        // Tema associato ai colori personalizzati (per evitare che blocchino la dark mode)
+        this.customColorsTheme = localStorage.getItem('budgetwise-custom-colors-theme') || null;
+// ========== TRADUZIONI ==========
         this.translations = {
             it: {
                 resetColors: 'Ripristina colori predefiniti',
@@ -2421,6 +2424,12 @@ class BudgetWise {
         document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
         document.getElementById('themeToggle').textContent = isDark ? '🌙' : '☀️';
         localStorage.setItem('budgetwise-theme', isDark ? 'light' : 'dark');
+        // Riapplica eventuali colori custom (senza bloccare la dark mode)
+        if (localStorage.getItem('budgetwise-custom-colors')) {
+            this.applyCustomColors();
+        } else {
+            this.clearThemeInlineOverrides();
+        }
         this.updateChart();
     }
 
@@ -2431,7 +2440,14 @@ class BudgetWise {
         }
     }
 
-    getCurrentThemeColors() {
+    getCurrentTheme() {
+        // Source of truth: data-theme attribute (html), fallback to localStorage
+        const attr = document.documentElement.getAttribute('data-theme');
+        if (attr === 'dark') return 'dark';
+        const saved = localStorage.getItem('budgetwise-theme');
+        return saved === 'dark' ? 'dark' : 'light';
+    }
+getCurrentThemeColors() {
         const style = getComputedStyle(document.documentElement);
         return {
             accent: style.getPropertyValue('--accent').trim() || '#7c3aed',
@@ -2450,17 +2466,22 @@ class BudgetWise {
     applyCustomColors() {
         // Apply ONLY if user has custom colors saved.
         if (!this.customColors) return;
+        const currentTheme = this.getCurrentTheme ? this.getCurrentTheme() : (localStorage.getItem('budgetwise-theme') === 'dark' ? 'dark' : 'light');
+        const savedTheme = this.customColorsTheme || localStorage.getItem('budgetwise-custom-colors-theme') || 'light';
+        const crossTheme = savedTheme !== currentTheme;
+        // Se i colori sono stati salvati in LIGHT, non devono bloccare la DARK mode.
+        const lockSensitive = crossTheme && currentTheme === 'dark';
         document.documentElement.style.setProperty('--accent', this.customColors.accent);
         document.documentElement.style.setProperty('--accent-light', this.customColors.accentLight);
-        document.documentElement.style.setProperty('--card-bg', this.customColors.cardBg);
-        document.documentElement.style.setProperty('--text-primary', this.customColors.textPrimary);
-        document.documentElement.style.setProperty('--text-secondary', this.customColors.textSecondary);
-        document.documentElement.style.setProperty('--bg-color', this.customColors.bg);
-        document.documentElement.style.setProperty('--success', this.customColors.success);
+        if (!lockSensitive) document.documentElement.style.setProperty('--card-bg', this.customColors.cardBg);
+        if (!lockSensitive) document.documentElement.style.setProperty('--text-primary', this.customColors.textPrimary);
+        if (!lockSensitive) document.documentElement.style.setProperty('--text-secondary', this.customColors.textSecondary);
+        if (!lockSensitive) document.documentElement.style.setProperty('--bg-color', this.customColors.bg);
+document.documentElement.style.setProperty('--success', this.customColors.success);
         document.documentElement.style.setProperty('--danger', this.customColors.danger);
         document.documentElement.style.setProperty('--warning', this.customColors.warning);
-        document.documentElement.style.setProperty('--border', this.customColors.border);
-        document.documentElement.style.setProperty('--accent-gradient', 
+        if (!lockSensitive) document.documentElement.style.setProperty('--border', this.customColors.border);
+document.documentElement.style.setProperty('--accent-gradient', 
             `linear-gradient(135deg, ${this.customColors.accent}, ${this.customColors.accentLight})`);
         
         this.syncColorPickers();
@@ -2493,6 +2514,9 @@ class BudgetWise {
 
     saveCustomColors() {
         localStorage.setItem('budgetwise-custom-colors', JSON.stringify(this.customColors));
+        const currentTheme = this.getCurrentTheme ? this.getCurrentTheme() : (localStorage.getItem('budgetwise-theme') === 'dark' ? 'dark' : 'light');
+        localStorage.setItem('budgetwise-custom-colors-theme', currentTheme);
+        this.customColorsTheme = currentTheme;
     }
 
     setupColorPickers() {
@@ -2525,6 +2549,8 @@ class BudgetWise {
                 // Reset to theme defaults and remove inline overrides.
                 this.customColors = null;
                 localStorage.removeItem('budgetwise-custom-colors');
+                localStorage.removeItem('budgetwise-custom-colors-theme');
+                this.customColorsTheme = null;
                 this.clearThemeInlineOverrides();
                 this.syncColorPickers();
                 this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
