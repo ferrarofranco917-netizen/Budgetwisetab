@@ -870,7 +870,13 @@ class BudgetWise {
         this.loadData();
         this.setupEventListeners();
         this.applyTheme();
-        this.applyCustomColors();
+        // NOTE: custom colors should NOT override theme defaults unless the user explicitly saved them.
+        // Otherwise we would "freeze" light colors as inline CSS variables and dark mode would barely change.
+        if (localStorage.getItem('budgetwise-custom-colors')) {
+            this.applyCustomColors();
+        } else {
+            this.clearThemeInlineOverrides();
+        }
         this.setupColorPickers();
         this.updateUI();
         this.updateChart();
@@ -2238,7 +2244,7 @@ class BudgetWise {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                            color: (getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '').trim(),
                             font: { size: 12 }
                         }
                     },
@@ -2442,9 +2448,8 @@ class BudgetWise {
     }
 
     applyCustomColors() {
-        if (!this.customColors) {
-            this.customColors = this.getCurrentThemeColors();
-        }
+        // Apply ONLY if user has custom colors saved.
+        if (!this.customColors) return;
         document.documentElement.style.setProperty('--accent', this.customColors.accent);
         document.documentElement.style.setProperty('--accent-light', this.customColors.accentLight);
         document.documentElement.style.setProperty('--card-bg', this.customColors.cardBg);
@@ -2459,6 +2464,14 @@ class BudgetWise {
             `linear-gradient(135deg, ${this.customColors.accent}, ${this.customColors.accentLight})`);
         
         this.syncColorPickers();
+    }
+
+    clearThemeInlineOverrides() {
+        const props = [
+            '--accent', '--accent-light', '--card-bg', '--text-primary', '--text-secondary',
+            '--bg-color', '--success', '--danger', '--warning', '--border', '--accent-gradient'
+        ];
+        props.forEach(p => document.documentElement.style.removeProperty(p));
     }
 
     syncColorPickers() {
@@ -2494,6 +2507,10 @@ class BudgetWise {
             if (picker) {
                 picker.addEventListener('input', (e) => {
                     const value = e.target.value;
+                    // First time the user touches a picker, initialize from current theme defaults.
+                    if (!this.customColors) {
+                        this.customColors = this.getCurrentThemeColors();
+                    }
                     const propName = id.replace('color', '').charAt(0).toLowerCase() + id.replace('color', '').slice(1);
                     this.customColors[propName] = value;
                     this.applyCustomColors();
@@ -2505,9 +2522,10 @@ class BudgetWise {
         const resetBtn = document.getElementById('resetColorsBtn');
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
-                this.customColors = this.getCurrentThemeColors();
-                this.applyCustomColors();
-                this.saveCustomColors();
+                // Reset to theme defaults and remove inline overrides.
+                this.customColors = null;
+                localStorage.removeItem('budgetwise-custom-colors');
+                this.clearThemeInlineOverrides();
                 this.syncColorPickers();
                 this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
             });
