@@ -2450,7 +2450,7 @@ class BudgetWise {
         alert(this.t('backupDownloaded'));
     }
 
-            restoreData(event) {
+               restoreData(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -2707,7 +2707,7 @@ class BudgetWise {
         return emojiMap[category] || '📌';
     }
 
-    // ========== REVISIONE IMPORT CSV ==========
+     // ========== REVISIONE IMPORT CSV ==========
     showImportReview(importedExpenses) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('importReviewOverlay');
@@ -2741,14 +2741,9 @@ class BudgetWise {
             
             importedExpenses.forEach((exp, index) => {
                 const select = document.querySelector(`.review-select[data-index="${index}"]`);
-                            
-                            const importedExpenses = [];
-            
-            const tempIncomes = []; // Array temporaneo per le entrate
                 if (select) {
                     select.value = exp.category;
                 }
-                
             });
             
             overlay.style.display = 'flex';
@@ -2789,7 +2784,7 @@ class BudgetWise {
             cancelBtn.addEventListener('click', onCancel);
         });
     }
-        // ========== MAPPATURA CAMPI CSV ==========
+            // ========== MAPPATURA CAMPI CSV ==========
     async showMappingDialog(file, delimiter, skipRows = 0, headerRow = 1) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('csvMappingOverlay');
@@ -2919,6 +2914,14 @@ class BudgetWise {
                 newConfirm.addEventListener('click', onConfirm);
                 newCancel.addEventListener('click', onCancel);
             };
+            
+            reader.onerror = () => {
+                resolve(null);
+            };
+            
+            reader.readAsText(file);
+        });
+    }
     
         // ========== IMPORT CSV CON MAPPATURA E REVISIONE ==========
     async parseCSV(file, delimiter, dateFormat, skipRows = 0, headerRow = 1) {
