@@ -299,18 +299,18 @@
             </div>
         </div>
 
-        <!-- IMPORT CSV (TOOLS) -->
+                <!-- IMPORT CSV/EXCEL (TOOLS) -->
         <div class="section-card" data-tab="tools">
             <h2 id="csvTitle">📥 Importa movimenti bancari</h2>
             <div class="section-content">
                 <p class="subtitle" id="csvSubtitle" style="margin-bottom: 15px;">
-                    Scarica l'estratto conto dalla tua banca in formato CSV
+                    Scarica l'estratto conto dalla tua banca in formato CSV o Excel
                 </p>
                 <div class="input-group">
-                    <label for="csvFile" id="csvChooseFileLabel">Scegli il file</label>
-                    <input type="file" id="csvFile" accept=".csv,.txt" style="display: none;">
+                    <label for="csvFile" id="csvChooseFileLabel">Scegli file CSV o Excel</label>
+                    <input type="file" id="csvFile" accept=".csv,.txt,.xls,.xlsx" style="display: none;">
                     <div class="file-name" id="csvFileName">Nessun file selezionato</div>
-                    <button class="btn-secondary" id="importCsvBtn">📥 Importa CSV</button>
+                    <button class="btn-secondary" id="importCsvBtn">📥 Importa CSV/Excel</button>
                 </div>
                 <div class="input-group-row">
                     <div class="input-group half">
@@ -329,6 +329,27 @@
                         </select>
                     </div>
                 </div>
+                
+                <!-- NUOVE OPZIONI PER EXCEL -->
+                <div class="input-group-row" style="margin-top: 15px;">
+                    <div class="input-group half">
+                        <label for="excelSheet" id="excelSheetLabel">Foglio Excel</label>
+                        <select id="excelSheet" class="language-select" disabled>
+                            <option value="">Carica un file Excel</option>
+                        </select>
+                    </div>
+                    <div class="input-group half">
+                        <label for="excelHeaderRow" id="excelHeaderLabel">Riga intestazione</label>
+                        <select id="excelHeaderRow" class="language-select">
+                            <option value="0">Riga 1</option>
+                            <option value="1">Riga 2</option>
+                            <option value="2">Riga 3</option>
+                            <option value="-1">Nessuna</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="help-text" id="excelHelp">📌 I file Excel vengono convertiti automaticamente</p>
+                
                 <div id="csvPreview" class="csv-preview" style="display: none; margin-top: 20px;">
                     <h3 id="csvPreviewTitle">Anteprima</h3>
                     <div id="previewContent"></div>
