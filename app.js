@@ -2498,7 +2498,45 @@ document.documentElement.style.setProperty('--accent-gradient',
     syncColorPickers() {
         const setField = (id, value) => {
             const input = document.getElementById(id);
-            if (input) input.value = value;
+            if (!input) return;
+
+            // <input type="color"> accetta solo #RRGGBB. Se troviamo valori tipo rgb/rgba li normalizziamo.
+            const normalizeToHex = (v) => {
+                if (!v) return '';
+                v = String(v).trim();
+
+                // già #RRGGBB
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) return v;
+
+                // #RGB -> #RRGGBB
+                const short = v.match(/^#([0-9a-fA-F]{3})$/);
+                if (short) {
+                    const s = short[1];
+                    return '#' + s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+                }
+
+                // rgb()/rgba() -> #RRGGBB (ignora alpha)
+                const rgb = v.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i);
+                if (rgb) {
+                    const r = Math.max(0, Math.min(255, parseInt(rgb[1], 10)));
+                    const g = Math.max(0, Math.min(255, parseInt(rgb[2], 10)));
+                    const b = Math.max(0, Math.min(255, parseInt(rgb[3], 10)));
+                    const toHex = (n) => n.toString(16).padStart(2, '0');
+                    return '#' + toHex(r) + toHex(g) + toHex(b);
+                }
+
+                return '';
+            };
+
+            // Se il campo è un color picker, settiamo solo valori validi
+            if (input.type === 'color') {
+                const hex = normalizeToHex(value);
+                if (hex) input.value = hex;
+                return;
+            }
+
+            // altrimenti set normale
+            input.value = value ?? '';
         };
         setField('colorAccent', this.customColors.accent);
         setField('colorAccentLight', this.customColors.accentLight);
