@@ -3112,7 +3112,7 @@ class BudgetWise {
     async parseExcel(file, sheetIndex = 0, headerRow = 0) {
         console.log('📥 Inizio import Excel:', file.name, 'foglio:', sheetIndex, 'headerRow:', headerRow);
 
-        // Legge Excel e lo converte in TSV (più sicuro del CSV perché evita problemi con le virgole nelle descrizioni)
+        // Legge Excel
         const arrayBuffer = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
@@ -3128,29 +3128,17 @@ class BudgetWise {
         const worksheet = workbook.Sheets[sheetName];
 
         const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-
-        if (!rows || rows.length === 0) {
-            throw new Error('Il file Excel è vuoto');
-        }
-
-        // Header row (0-based in UI)
-        const hr = (headerRow >= 0 && headerRow < rows.length) ? headerRow : 0;
-
-        const headers = (rows[hr] || []).map(cell => String(cell ?? '').trim());
-        const dataRows = rows
-            .slice(hr + 1)
-            .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
+        if (!rows || rows.length === 0) throw new Error('Il file Excel è vuoto');
 
         const cellToString = (cell) => {
             if (cell === null || cell === undefined) return '';
-            // Date già convertite da XLSX
             if (cell instanceof Date && !isNaN(cell.getTime())) {
                 const y = cell.getFullYear();
                 const m = String(cell.getMonth() + 1).padStart(2, '0');
                 const d = String(cell.getDate()).padStart(2, '0');
                 return `${y}-${m}-${d}`;
             }
-            // Seriali data Excel (molti estratti conto esportano così)
+            // Seriali data Excel
             if (typeof cell === 'number' && isFinite(cell) && XLSX?.SSF?.parse_date_code) {
                 const dc = XLSX.SSF.parse_date_code(cell);
                 if (dc && dc.y >= 1900 && dc.y <= 2100 && dc.m >= 1 && dc.m <= 12 && dc.d >= 1 && dc.d <= 31) {
@@ -3163,22 +3151,175 @@ class BudgetWise {
             return String(cell).replace(/[\t ]+/g, ' ').trim();
         };
 
-        const tsvLines = [];
-        tsvLines.push(headers.map(cellToString).join('	'));
-        for (const row of dataRows) {
-            tsvLines.push((row || []).map(cellToString).join('	'));
+        const normalizeHeader = (h) => String(h || '').trim().toLowerCase();
+
+        // Autodetect header row se headerRow è 0 o non valido:
+        // cerchiamo una riga che contenga colonne tipo Data/Descrizione/Entrate-Uscite
+        let hr = (headerRow >= 0 && headerRow < rows.length) ? headerRow : 0;
+        if (headerRow === 0) {
+            let bestIdx = 0;
+            let bestScore = -1;
+            for (let i = 0; i < Math.min(rows.length, 50); i++) {
+                const r = (rows[i] || []).map(cellToString).map(normalizeHeader);
+                if (!r.length) continue;
+
+                const hasDataOp = r.includes('data_operazione') || r.includes('data operazione') || r.includes('data');
+                const hasDesc = r.includes('descrizione') || r.includes('descrizione_completa') || r.includes('descrizione completa');
+                const hasUsc = r.includes('uscite') || r.includes('addebiti') || r.includes('debit');
+                const hasEnt = r.includes('entrate') || r.includes('accrediti') || r.includes('credit');
+
+                const score = (hasDataOp ? 2 : 0) + (hasDesc ? 2 : 0) + (hasUsc ? 1 : 0) + (hasEnt ? 1 : 0);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestIdx = i;
+                }
+            }
+            if (bestScore >= 3) hr = bestIdx;
         }
-        const tsvContent = tsvLines.join('\n');
+
+        const headersRaw = (rows[hr] || []).map(cellToString);
+        const headers = headersRaw.map(normalizeHeader);
+
+        const idx = (nameList) => {
+            for (const n of nameList) {
+                const key = normalizeHeader(n);
+                const i = headers.indexOf(key);
+                if (i !== -1) return i;
+            }
+            return -1;
+        };
+
+        // Formato estratto conto tipo il tuo (Data_Operazione, Entrate, Uscite, Descrizione, Moneymap...)
+        const iDate = idx(['data_operazione', 'data operazione', 'data']);
+        const iEnt = idx(['entrate', 'accrediti', 'credit']);
+        const iUsc = idx(['uscite', 'addebiti', 'debit']);
+        const iDescFull = idx(['descrizione_completa', 'descrizione completa']);
+        const iDesc = idx(['descrizione']);
+        const iCat = idx(['moneymap', 'categoria', 'category']);
+
+        const dataRows = rows
+            .slice(hr + 1)
+            .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
+
+        // Se riconosciamo questo formato, importiamo direttamente (senza dialog mappatura)
+        const recognizedBankFormat = (iDate !== -1) && (iDesc !== -1 || iDescFull !== -1) && (iEnt !== -1 || iUsc !== -1);
+
+        if (recognizedBankFormat) {
+            const importedExpenses = [];
+            const tempIncomes = [];
+
+            for (let r = 0; r < dataRows.length; r++) {
+                const row = dataRows[r] || [];
+                let dateStr = cellToString(row[iDate]);
+                dateStr = this.normalizeIsoDate(dateStr);
+                if (!dateStr) continue;
+
+                const description = cellToString(row[iDescFull !== -1 ? iDescFull : iDesc]);
+                if (!description) continue;
+
+                const catRaw = (iCat !== -1) ? cellToString(row[iCat]) : '';
+                let category = catRaw || this.suggestCategory(description);
+
+                const parseNum = (v) => {
+                    if (v === null || v === undefined || v === '') return null;
+                    if (typeof v === 'number' && isFinite(v)) return v;
+                    const s = String(v).replace(',', '.').replace(/[^0-9.-]/g, '');
+                    const n = parseFloat(s);
+                    return isNaN(n) ? null : n;
+                };
+
+                const usc = (iUsc !== -1) ? parseNum(row[iUsc]) : null;
+                const ent = (iEnt !== -1) ? parseNum(row[iEnt]) : null;
+
+                // Nel tuo file le uscite sono già negative (es: -16.50). Manteniamo il segno.
+                let amount = null;
+                if (usc !== null && usc !== 0) amount = usc;
+                else if (ent !== null && ent !== 0) amount = ent;
+                else continue;
+
+                if (amount > 0) {
+                    tempIncomes.push({ desc: description, amount: amount, date: dateStr, id: Date.now() + r });
+                } else {
+                    importedExpenses.push({ name: description, amount: Math.abs(amount), date: dateStr, category: category || 'Altro', id: Date.now() + r });
+                }
+            }
+
+            // Riutilizza lo stesso flusso di salvataggio/revisione usato dal CSV
+            let addedExpenses = 0;
+            let addedIncomes = 0;
+
+            if (importedExpenses.length > 0) {
+                const reviewed = await this.showImportReview(importedExpenses);
+                if (reviewed.length > 0) {
+                    for (const exp of reviewed) {
+                        if (!this.data.variableExpenses) this.data.variableExpenses = {};
+                        if (!this.data.variableExpenses[exp.date]) this.data.variableExpenses[exp.date] = [];
+                        this.data.variableExpenses[exp.date].push({ name: exp.name, amount: exp.amount, category: exp.category, id: exp.id });
+                    }
+                    addedExpenses = reviewed.length;
+                } else {
+                    alert(this.t('importCancelled'));
+                    return { cancelled: true, added: 0, incomes: 0 };
+                }
+            }
+
+            if (tempIncomes.length > 0) {
+                if (!this.data.incomes) this.data.incomes = [];
+                this.data.incomes.push(...tempIncomes);
+                addedIncomes = tempIncomes.length;
+            }
+
+            if (addedExpenses === 0 && addedIncomes === 0) {
+                this.showToast(
+                    this.data.language === 'it'
+                        ? '⚠️ Nessun movimento valido trovato nel file'
+                        : '⚠️ No valid transactions found in the file',
+                    'info'
+                );
+                return { cancelled: false, added: 0, incomes: 0 };
+            }
+
+            this.saveData();
+            this.updateUI();
+            this.updateChart();
+
+            if (addedExpenses > 0) {
+                const mostRecent = importedExpenses
+                    .map(e => this.normalizeIsoDate(e.date))
+                    .sort()
+                    .slice(-1)[0];
+                const dateInput = document.getElementById('expenseDate');
+                if (dateInput && mostRecent) dateInput.value = mostRecent;
+                this.updateVariableExpensesList();
+            }
+
+            this.showToast(
+                this.data.language === 'it'
+                    ? `✅ Importate ${addedExpenses} spese${addedIncomes ? ` e ${addedIncomes} entrate` : ''}!`
+                    : `✅ Imported ${addedExpenses} expenses${addedIncomes ? ` and ${addedIncomes} incomes` : ''}!`,
+                'success'
+            );
+
+            return { cancelled: false, added: addedExpenses, incomes: addedIncomes };
+        }
+
+        // Fallback: converte in TSV e usa la mappatura manuale
+        const headersForTsv = headersRaw.map(cellToString).join('\t');
+        const tsvLines = [headersForTsv];
+
+        for (const row of dataRows) {
+            tsvLines.push((row || []).map(cellToString).join('\t'));
+        }
 
         const virtualFile = new File(
-            [tsvContent],
+            [tsvLines.join('\n')],
             file.name.replace(/\.[^/.]+$/, '') + '_converted.tsv',
             { type: 'text/tab-separated-values' }
         );
 
-        // Header presente come prima riga del TSV → headerRow=1
-        return await this.parseCSV(virtualFile, '	', 'ISO', 0, 1);
+        return await this.parseCSV(virtualFile, '\t', 'ISO', 0, 1);
     }
+
 
     async importFromVirtualCSV(file, delimiter, dateFormat, originalName) {
         console.log('🔄 Conversione da Excel a CSV per:', originalName);
