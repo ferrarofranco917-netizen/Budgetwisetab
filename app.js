@@ -2982,7 +2982,80 @@ class BudgetWise {
         };
         reader.readAsText(file);
     }
-
+    // ========== IMPORT EXCEL ==========
+    async parseExcel(file, sheetIndex = 0, headerRow = 0) {
+        console.log('📥 Inizio import Excel:', file.name, 'foglio:', sheetIndex, 'headerRow:', headerRow);
+        
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Se sheetIndex è -1, prendi il primo foglio
+                    const sheetName = workbook.SheetNames[sheetIndex >= 0 ? sheetIndex : 0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    // Converti in JSON con intestazione se specificata
+                    const options = { header: 1, defval: '' }; // array di array
+                    if (headerRow >= 0) {
+                        options.range = headerRow; // parte dalla riga specificata
+                    }
+                    
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                    
+                    if (rows.length === 0) {
+                        reject('❌ Il file Excel è vuoto');
+                        return;
+                    }
+                    
+                    // Estrai intestazione se richiesta
+                    let headers = [];
+                    let dataRows = rows;
+                    
+                    if (headerRow >= 0 && rows.length > headerRow) {
+                        headers = rows[headerRow].map(cell => String(cell).trim());
+                        dataRows = rows.slice(headerRow + 1);
+                    } else {
+                        // Nessuna intestazione: crea colonne fittizie
+                        headers = rows[0].map((_, i) => `Colonna ${i+1}`);
+                    }
+                    
+                    // Filtra righe vuote
+                    dataRows = dataRows.filter(row => row.some(cell => String(cell).trim() !== ''));
+                    
+                    // Converti in formato CSV-like per usare showMappingDialog
+                    const csvContent = [headers, ...dataRows].map(row => row.join(',')).join('\n');
+                    
+                    // Crea un file virtuale per la mappatura
+                    const virtualFile = new File([csvContent], file.name.replace(/\.[^/.]+$/, '') + '_converted.csv', { type: 'text/csv' });
+                    
+                    // Ora usa il flusso esistente di import CSV
+                    this.importFromVirtualCSV(virtualFile, ',', 'DD/MM/YYYY', file.name);
+                    resolve();
+                    
+                } catch (error) {
+                    console.error('❌ Errore parsing Excel:', error);
+                    reject('❌ Errore durante la lettura del file Excel: ' + error.message);
+                }
+            };
+            
+            reader.onerror = () => {
+                reject('❌ Errore durante la lettura del file');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+    }
+        async importFromVirtualCSV(file, delimiter, dateFormat, originalName) {
+        // Usa la funzione parseCSV esistente, ma prima mostriamo un messaggio
+        console.log('🔄 Conversione da Excel a CSV per:', originalName);
+        
+        // Chiama parseCSV con il file virtuale
+        await this.parseCSV(file, delimiter, dateFormat);
+    }
     // ========== ONBOARDING GUIDATO ==========
     startOnboarding() {
         if (localStorage.getItem('budgetwise-onboarding-completed') === 'true') return;
