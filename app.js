@@ -2466,7 +2466,8 @@ class BudgetWise {
                 alert(this.t('invalidFile'));
             }
         };
-        reader.readAsText(file);
+       reader.readAsText(file);
+        });
     }
 
     resetAll() {
