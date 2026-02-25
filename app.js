@@ -3671,7 +3671,10 @@ setTimeout(function() {
         const pendingFile = window._pendingExcelFile;
         
         if (!file && !pendingFile) {
-            alert(window.app.t('fillFields') || 'Seleziona prima un file');
+            if (!file && !pendingFile) {
+    alert('Seleziona prima un file');
+    return;
+}
             return;
         }
         
