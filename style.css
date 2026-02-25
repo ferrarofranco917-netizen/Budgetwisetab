@@ -1441,3 +1441,15 @@ input:focus, select:focus {
     border-radius: 8px;
     cursor: pointer;
 }
+/* Stili per i selettori Excel */
+#excelSheet:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-style: italic;
+}
