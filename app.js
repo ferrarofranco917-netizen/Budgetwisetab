@@ -2927,210 +2927,267 @@ class BudgetWise {
     // ========== IMPORT CSV CON MAPPATURA E REVISIONE ==========
     async parseCSV(file, delimiter, dateFormat, skipRows = 0, headerRow = 1) {
         console.log('📥 Inizio import CSV:', file.name, 'delimiter:', delimiter, 'dateFormat:', dateFormat, 'skipRows:', skipRows, 'headerRow:', headerRow);
-        
+
         const mapping = await this.showMappingDialog(file, delimiter, skipRows, headerRow);
         if (!mapping) {
             alert(this.t('importCancelled'));
-            return;
+            return { cancelled: true, added: 0, incomes: 0 };
         }
-        
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const text = e.target.result;
-            const allLines = text.split('\n').filter(line => line.trim() !== '');
-            
-            // Salta le righe iniziali
-            const startLine = Math.min(skipRows, allLines.length - 1);
-            
-            // Determina dove iniziano i dati (dopo l'intestazione)
-            let dataStartLine = startLine;
-            if (headerRow > 0) {
-                dataStartLine = startLine + headerRow; // Salta anche l'intestazione
-            }
-            
-            const lines = allLines.slice(dataStartLine);
-            const importedExpenses = [];
-            const tempIncomes = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const parts = line.split(delimiter);
-                if (parts.length <= Math.max(mapping.dateCol, mapping.descCol, mapping.amountCol)) continue;
-                
-                let dateStr = parts[mapping.dateCol] ? parts[mapping.dateCol].trim() : '';
-                let description = parts[mapping.descCol] ? parts[mapping.descCol].trim() : '';
-                let amountStr = parts[mapping.amountCol] ? parts[mapping.amountCol].trim() : '';
-                let category = mapping.categoryCol !== -1 && parts[mapping.categoryCol] ? parts[mapping.categoryCol].trim() : '';
-                
-                if (!dateStr || !description || !amountStr) continue;
-                
-                if (dateFormat === 'DD/MM/YYYY') {
-                    const parts = dateStr.split(/[\/\-]/);
-                    if (parts.length === 3) {
-                        const [d, m, y] = parts;
-                        if (d && m && y) dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                        else continue;
-                    } else continue;
-                } else if (dateFormat === 'MM/DD/YYYY') {
-                    const parts = dateStr.split(/[\/\-]/);
-                    if (parts.length === 3) {
-                        const [m, d, y] = parts;
-                        if (m && d && y) dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                        else continue;
-                    } else continue;
-                }
 
-                dateStr = this.normalizeIsoDate(dateStr);
-                
-                let amount = parseFloat(amountStr.replace(',', '.').replace(/[^0-9.-]/g, ''));
-                if (isNaN(amount)) continue;
-                
-                if (!category) category = this.suggestCategory(description);
-                
-                if (amount > 0) {
-                    tempIncomes.push({
-                        desc: description,
-                        amount: amount,
-                        date: dateStr,
-                        id: Date.now() + i
-                    });
-                } else {
-                    amount = Math.abs(amount);
-                    importedExpenses.push({
-                        name: description,
-                        amount: amount,
-                        date: dateStr,
-                        category: category || 'Altro',
-                        id: Date.now() + i
-                    });
-                }
-            }
-            
-            if (importedExpenses.length > 0) {
-                const reviewed = await this.showImportReview(importedExpenses);
-                
-                if (reviewed.length > 0) {
-                    for (const exp of reviewed) {
-                        if (!this.data.variableExpenses) this.data.variableExpenses = {};
-                        if (!this.data.variableExpenses[exp.date]) this.data.variableExpenses[exp.date] = [];
-                        this.data.variableExpenses[exp.date].push({
-                            name: exp.name,
-                            amount: exp.amount,
-                            category: exp.category,
-                            id: exp.id
-                        });
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target.result;
+                    const allLines = String(text).split('
+').filter(line => line.trim() !== '');
+
+                    // Salta le righe iniziali
+                    const startLine = Math.min(skipRows, allLines.length - 1);
+
+                    // Determina dove iniziano i dati (dopo l'intestazione)
+                    let dataStartLine = startLine;
+                    if (headerRow > 0) {
+                        dataStartLine = startLine + headerRow; // Salta anche l'intestazione
                     }
-                    
-                    if (tempIncomes.length > 0) {
+
+                    const lines = allLines.slice(dataStartLine);
+                    const importedExpenses = [];
+                    const tempIncomes = [];
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        const parts = line.split(delimiter);
+                        if (parts.length <= Math.max(mapping.dateCol, mapping.descCol, mapping.amountCol)) continue;
+
+                        let dateStr = parts[mapping.dateCol] ? parts[mapping.dateCol].trim() : '';
+                        let description = parts[mapping.descCol] ? parts[mapping.descCol].trim() : '';
+                        let amountStr = parts[mapping.amountCol] ? parts[mapping.amountCol].trim() : '';
+                        let category = mapping.categoryCol !== -1 && parts[mapping.categoryCol] ? parts[mapping.categoryCol].trim() : '';
+
+                        if (!dateStr || !description || !amountStr) continue;
+
+                        if (dateFormat === 'DD/MM/YYYY') {
+                            const parts = dateStr.split(/[\/\-]/);
+                            if (parts.length === 3) {
+                                const [d, m, y] = parts;
+                                if (d && m && y) dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                                else continue;
+                            } else continue;
+                        } else if (dateFormat === 'MM/DD/YYYY') {
+                            const parts = dateStr.split(/[\/\-]/);
+                            if (parts.length === 3) {
+                                const [m, d, y] = parts;
+                                if (m && d && y) dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                                else continue;
+                            } else continue;
+                        }
+
+                        dateStr = this.normalizeIsoDate(dateStr);
+                        if (!dateStr) continue;
+
+                        let amount = parseFloat(String(amountStr).replace(',', '.').replace(/[^0-9.-]/g, ''));
+                        if (isNaN(amount)) continue;
+
+                        if (!category) category = this.suggestCategory(description);
+
+                        if (amount > 0) {
+                            tempIncomes.push({
+                                desc: description,
+                                amount: amount,
+                                date: dateStr,
+                                id: Date.now() + i
+                            });
+                        } else {
+                            amount = Math.abs(amount);
+                            importedExpenses.push({
+                                name: description,
+                                amount: amount,
+                                date: dateStr,
+                                category: category || 'Altro',
+                                id: Date.now() + i
+                            });
+                        }
+                    }
+
+                    let addedExpenses = 0;
+                    let addedIncomes = 0;
+
+                    if (importedExpenses.length > 0) {
+                        const reviewed = await this.showImportReview(importedExpenses);
+
+                        if (reviewed.length > 0) {
+                            for (const exp of reviewed) {
+                                if (!this.data.variableExpenses) this.data.variableExpenses = {};
+                                if (!this.data.variableExpenses[exp.date]) this.data.variableExpenses[exp.date] = [];
+                                this.data.variableExpenses[exp.date].push({
+                                    name: exp.name,
+                                    amount: exp.amount,
+                                    category: exp.category,
+                                    id: exp.id
+                                });
+                            }
+
+                            addedExpenses = reviewed.length;
+
+                            if (tempIncomes.length > 0) {
+                                if (!this.data.incomes) this.data.incomes = [];
+                                this.data.incomes.push(...tempIncomes);
+                                addedIncomes = tempIncomes.length;
+                            }
+
+                            this.saveData();
+                            this.updateUI();
+                            this.updateChart();
+
+                            const mostRecent = reviewed
+                                .map(e => this.normalizeIsoDate(e.date))
+                                .sort()
+                                .slice(-1)[0];
+                            const dateInput = document.getElementById('expenseDate');
+                            if (dateInput && mostRecent) dateInput.value = mostRecent;
+                            this.updateVariableExpensesList();
+
+                            this.showToast(
+                                this.data.language === 'it'
+                                    ? `✅ Importate ${addedExpenses} spese${addedIncomes ? ` e ${addedIncomes} entrate` : ''}!`
+                                    : `✅ Imported ${addedExpenses} expenses${addedIncomes ? ` and ${addedIncomes} incomes` : ''}!`,
+                                'success'
+                            );
+
+                            resolve({ cancelled: false, added: addedExpenses, incomes: addedIncomes });
+                            return;
+                        } else {
+                            alert(this.t('importCancelled'));
+                            resolve({ cancelled: true, added: 0, incomes: 0 });
+                            return;
+                        }
+                    } else if (tempIncomes.length > 0) {
                         if (!this.data.incomes) this.data.incomes = [];
                         this.data.incomes.push(...tempIncomes);
+                        addedIncomes = tempIncomes.length;
+                        this.saveData();
+                        this.updateUI();
+                        this.updateChart();
+
+                        this.showToast(
+                            this.data.language === 'it'
+                                ? `✅ Importate ${addedIncomes} entrate!`
+                                : `✅ Imported ${addedIncomes} incomes!`,
+                            'success'
+                        );
+
+                        resolve({ cancelled: false, added: 0, incomes: addedIncomes });
+                        return;
+                    } else {
+                        this.showToast(
+                            this.data.language === 'it'
+                                ? '⚠️ Nessun movimento valido trovato nel file'
+                                : '⚠️ No valid transactions found in the file',
+                            'info'
+                        );
+                        resolve({ cancelled: false, added: 0, incomes: 0 });
+                        return;
                     }
-                    
-                    this.saveData();
-                    this.updateUI();
-                    this.updateChart();
-                    
-                    const mostRecent = reviewed
-                        .map(e => this.normalizeIsoDate(e.date))
-                        .sort()
-                        .slice(-1)[0];
-                    const dateInput = document.getElementById('expenseDate');
-                    if (dateInput && mostRecent) dateInput.value = mostRecent;
-                    this.updateVariableExpensesList();
-                    
-                    alert(this.data.language === 'it'
-                        ? `✅ Importate ${reviewed.length} spese!`
-                        : `✅ Imported ${reviewed.length} expenses!`);
-                } else {
-                    alert(this.t('importCancelled'));
+                } catch (err) {
+                    console.error('❌ Errore durante import CSV:', err);
+                    alert(this.t('csvImportError'));
+                    reject(err);
                 }
-            } else {
-                if (tempIncomes.length > 0) {
-                    if (!this.data.incomes) this.data.incomes = [];
-                    this.data.incomes.push(...tempIncomes);
-                    this.saveData();
-                    this.updateUI();
-                    alert(this.data.language === 'it' 
-                        ? `✅ Importate ${tempIncomes.length} entrate!` 
-                        : `✅ Imported ${tempIncomes.length} incomes!`);
-                } else {
-                    this.saveData();
-                    this.updateUI();
-                    this.updateChart();
-                    alert(this.data.language === 'it' ? '✅ File importato con successo!' : '✅ File imported successfully!');
-                }
-            }
-        };
-        
-        reader.onerror = () => {
-            console.error('❌ Errore lettura file');
-            alert(this.t('fileReadError'));
-        };
-        
-        reader.readAsText(file);
+            };
+
+            reader.onerror = () => {
+                console.error('❌ Errore lettura file');
+                alert(this.t('fileReadError'));
+                reject(new Error('File read error'));
+            };
+
+            reader.readAsText(file);
+        });
     }
 
     // ========== IMPORT EXCEL ==========
     async parseExcel(file, sheetIndex = 0, headerRow = 0) {
         console.log('📥 Inizio import Excel:', file.name, 'foglio:', sheetIndex, 'headerRow:', headerRow);
-        
-        return new Promise((resolve, reject) => {
+
+        // Legge Excel e lo converte in TSV (più sicuro del CSV perché evita problemi con le virgole nelle descrizioni)
+        const arrayBuffer = await new Promise((resolve, reject) => {
             const reader = new FileReader();
-            
-            reader.onload = (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    const sheetName = workbook.SheetNames[sheetIndex >= 0 ? sheetIndex : 0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    
-                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                    
-                    if (rows.length === 0) {
-                        reject('❌ Il file Excel è vuoto');
-                        return;
-                    }
-                    
-                    let headers = [];
-                    let dataRows = rows;
-                    
-                    if (headerRow >= 0 && rows.length > headerRow) {
-                        headers = rows[headerRow].map(cell => String(cell).trim());
-                        dataRows = rows.slice(headerRow + 1);
-                    } else {
-                        headers = rows[0].map((_, i) => `Colonna ${i+1}`);
-                    }
-                    
-                    dataRows = dataRows.filter(row => row.some(cell => String(cell).trim() !== ''));
-                    
-                    const csvContent = [headers, ...dataRows].map(row => row.join(',')).join('\n');
-                    
-                    const virtualFile = new File([csvContent], file.name.replace(/\.[^/.]+$/, '') + '_converted.csv', { type: 'text/csv' });
-                    
-                    this.importFromVirtualCSV(virtualFile, ',', 'DD/MM/YYYY', file.name);
-                    resolve();
-                    
-                } catch (error) {
-                    console.error('❌ Errore parsing Excel:', error);
-                    reject('❌ Errore durante la lettura del file Excel: ' + error.message);
-                }
-            };
-            
-            reader.onerror = () => {
-                reject('❌ Errore durante la lettura del file');
-            };
-            
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('Errore durante la lettura del file'));
             reader.readAsArrayBuffer(file);
         });
+
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+        const safeSheetIndex = (sheetIndex >= 0 && sheetIndex < workbook.SheetNames.length) ? sheetIndex : 0;
+        const sheetName = workbook.SheetNames[safeSheetIndex];
+        const worksheet = workbook.Sheets[sheetName];
+
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+        if (!rows || rows.length === 0) {
+            throw new Error('Il file Excel è vuoto');
+        }
+
+        // Header row (0-based in UI)
+        const hr = (headerRow >= 0 && headerRow < rows.length) ? headerRow : 0;
+
+        const headers = (rows[hr] || []).map(cell => String(cell ?? '').trim());
+        const dataRows = rows
+            .slice(hr + 1)
+            .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
+
+        const cellToString = (cell) => {
+            if (cell === null || cell === undefined) return '';
+            // Date già convertite da XLSX
+            if (cell instanceof Date && !isNaN(cell.getTime())) {
+                const y = cell.getFullYear();
+                const m = String(cell.getMonth() + 1).padStart(2, '0');
+                const d = String(cell.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            // Seriali data Excel (molti estratti conto esportano così)
+            if (typeof cell === 'number' && isFinite(cell) && XLSX?.SSF?.parse_date_code) {
+                const dc = XLSX.SSF.parse_date_code(cell);
+                if (dc && dc.y >= 1900 && dc.y <= 2100 && dc.m >= 1 && dc.m <= 12 && dc.d >= 1 && dc.d <= 31) {
+                    const y = dc.y;
+                    const m = String(dc.m).padStart(2, '0');
+                    const d = String(dc.d).padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                }
+            }
+            return String(cell).replace(/[	
+]+/g, ' ').trim();
+        };
+
+        const tsvLines = [];
+        tsvLines.push(headers.map(cellToString).join('	'));
+        for (const row of dataRows) {
+            tsvLines.push((row || []).map(cellToString).join('	'));
+        }
+        const tsvContent = tsvLines.join('
+');
+
+        const virtualFile = new File(
+            [tsvContent],
+            file.name.replace(/\.[^/.]+$/, '') + '_converted.tsv',
+            { type: 'text/tab-separated-values' }
+        );
+
+        // Header presente come prima riga del TSV → headerRow=1
+        return await this.parseCSV(virtualFile, '	', 'ISO', 0, 1);
     }
 
     async importFromVirtualCSV(file, delimiter, dateFormat, originalName) {
         console.log('🔄 Conversione da Excel a CSV per:', originalName);
-        await this.parseCSV(file, delimiter, dateFormat);
+        return await this.parseCSV(file, delimiter, dateFormat);
     }
+
 
     // ========== ONBOARDING GUIDATO ==========
     startOnboarding() {
@@ -3601,11 +3658,20 @@ setTimeout(function() {
     // Variabile per tenere traccia del file Excel in attesa
     window._pendingExcelFile = null;
 
-    btn.addEventListener('click', function() {
-        fileInput.click();
+    btn.addEventListener('click', function(ev) {
+        // Se non è stato selezionato nessun file, apri il picker.
+        // Se invece c'è già un file (o un Excel in attesa), il click avvierà l'import (handler sotto).
+        const hasSelected = (fileInput && fileInput.files && fileInput.files[0]) || window._pendingExcelFile;
+        if (!hasSelected) {
+            ev.preventDefault();
+            ev.stopImmediatePropagation();
+            fileInput.click();
+            return;
+        }
+        // altrimenti: lascia proseguire il click → handler import
     });
 
-    fileInput.addEventListener('change', async function(e) {
+fileInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (!file) return;
         
@@ -3722,10 +3788,10 @@ setTimeout(function() {
                 fileNameSpan.textContent = 'Nessun file selezionato';
             }
             
-            alert('✅ Import completato con successo!');
+            // Esito già gestito da parseCSV/parseExcel (toast/messaggi)
             
         } catch (error) {
-            alert('❌ Errore durante l\'import: ' + error.message);
+            alert('❌ Errore durante l\'import: ' + (error?.message || String(error)));
             console.error(error);
         } finally {
             btn.textContent = '📥 Importa CSV/Excel';
