@@ -35,19 +35,12 @@ class BudgetWise {
         if (savedColors) {
             this.customColors = JSON.parse(savedColors);
         } else {
-            this.customColors = null; // Sarà inizializzato in applyCustomColors()
+            this.customColors = null;
         }
 
         // ========== TRADUZIONI ==========
         this.translations = {
             it: {
-                skipRowsLabel: 'Salta righe iniziali',
-headerRowManualLabel: 'Riga intestazione (0 = nessuna)',
-skipHelp: '📌 Per file Fineco: salta le prime righe fino a trovare le colonne',
-                excelSheetLabel: 'Foglio Excel',
-excelHeaderLabel: 'Riga intestazione',
-excelHelp: '📌 I file Excel vengono convertiti automaticamente',
-csvExcelButton: '📥 Importa CSV/Excel',
                 resetColors: 'Ripristina colori predefiniti',
                 budget: 'Budget giornaliero',
                 remaining: 'Rimanenza',
@@ -190,6 +183,11 @@ csvExcelButton: '📥 Importa CSV/Excel',
                 tabVariable: '🧾 Variabili',
                 tabTools: '🛠️ Strumenti',
 
+                // NUOVE CHIAVI PER SKIP ROWS
+                skipRowsLabel: 'Salta righe iniziali',
+                headerRowManualLabel: 'Riga intestazione',
+                skipHelp: '📌 Per file con righe iniziali (es. Fineco): salta le righe fino a trovare le colonne',
+
                 docTitle: '💰 BudgetWise 2.0 - Gestione Finanziaria Intelligente',
                 subtitle: 'Stipendio a stipendio — gestione intelligente con AI',
                 add: 'Aggiungi',
@@ -251,13 +249,7 @@ csvExcelButton: '📥 Importa CSV/Excel',
                 yourCategoriesTitle: 'Le tue categorie',
                 close: 'Chiudi',
             },
-            en: {skipRowsLabel: 'Skip initial rows',
-headerRowManualLabel: 'Header row (0 = none)',
-skipHelp: '📌 For Fineco files: skip the first rows until you find the columns',                
-                excelSheetLabel: 'Excel Sheet',
-excelHeaderLabel: 'Header row',
-excelHelp: '📌 Excel files are automatically converted',
-csvExcelButton: '📥 Import CSV/Excel',
+            en: {
                 resetColors: 'Reset default colors',
                 budget: 'Daily budget',
                 remaining: 'Remaining',
@@ -400,6 +392,11 @@ csvExcelButton: '📥 Import CSV/Excel',
                 tabVariable: '🧾 Variable',
                 tabTools: '🛠️ Tools',
 
+                // NUOVE CHIAVI PER SKIP ROWS
+                skipRowsLabel: 'Skip initial rows',
+                headerRowManualLabel: 'Header row',
+                skipHelp: '📌 For files with initial rows (e.g., Fineco): skip rows until you find the columns',
+
                 docTitle: '💰 BudgetWise 2.0 - Smart Budget Manager',
                 subtitle: 'Paycheck to paycheck — smart management with AI',
                 add: 'Add',
@@ -462,13 +459,6 @@ csvExcelButton: '📥 Import CSV/Excel',
                 close: 'Close',
             },
             es: {
-                skipRowsLabel: 'Saltar filas iniciales',
-headerRowManualLabel: 'Fila de encabezado (0 = ninguna)',
-skipHelp: '📌 Para archivos Fineco: salta las primeras filas hasta encontrar las columnas',
-                excelSheetLabel: 'Hoja Excel',
-excelHeaderLabel: 'Fila de encabezado',
-excelHelp: '📌 Los archivos Excel se convierten automáticamente',
-csvExcelButton: '📥 Importar CSV/Excel',
                 resetColors: 'Restablecer colores predeterminados',
                 budget: 'Presupuesto diario',
                 remaining: 'Restante',
@@ -608,6 +598,11 @@ csvExcelButton: '📥 Importar CSV/Excel',
                 tabVariable: '🧾 Variables',
                 tabTools: '🛠️ Herramientas',
 
+                // NUOVE CHIAVI PER SKIP ROWS
+                skipRowsLabel: 'Saltar filas iniciales',
+                headerRowManualLabel: 'Fila de encabezado',
+                skipHelp: '📌 Para archivos con filas iniciales (ej. Fineco): salta las filas hasta encontrar las columnas',
+
                 docTitle: '💰 BudgetWise 2.0 - Gestor de presupuesto inteligente',
                 subtitle: 'De nómina a nómina — gestión inteligente con IA',
                 add: 'Añadir',
@@ -663,13 +658,6 @@ csvExcelButton: '📥 Importar CSV/Excel',
                 edit: 'Editar'
             },
             fr: {
-                skipRowsLabel: 'Ignorer les lignes initiales',
-headerRowManualLabel: 'Ligne d\'en-tête (0 = aucune)',
-skipHelp: '📌 Pour les fichiers Fineco : ignorez les premières lignes jusqu\'à trouver les colonnes',
-                excelSheetLabel: 'Feuille Excel',
-excelHeaderLabel: 'Ligne d\'en-tête',
-excelHelp: '📌 Les fichiers Excel sont convertis automatiquement',
-csvExcelButton: '📥 Importer CSV/Excel',
                 resetColors: 'Réinitialiser les couleurs par défaut',
                 budget: 'Budget journalier',
                 remaining: 'Reste',
@@ -809,6 +797,11 @@ csvExcelButton: '📥 Importer CSV/Excel',
                 tabVariable: '🧾 Variables',
                 tabTools: '🛠️ Outils',
 
+                // NUOVE CHIAVI PER SKIP ROWS
+                skipRowsLabel: 'Ignorer les lignes initiales',
+                headerRowManualLabel: 'Ligne d\'en-tête',
+                skipHelp: '📌 Pour les fichiers avec lignes initiales (ex. Fineco): ignorez les lignes jusqu\'à trouver les colonnes',
+
                 docTitle: '💰 BudgetWise 2.0 - Gestionnaire de budget intelligent',
                 subtitle: 'De paie en paie — gestion intelligente avec IA',
                 add: 'Ajouter',
@@ -867,8 +860,9 @@ csvExcelButton: '📥 Importer CSV/Excel',
         
         this.init();
     }
+    
 
-    init() {
+        init() {
         this.loadData();
         this.setupEventListeners();
         this.applyTheme();
@@ -1147,12 +1141,7 @@ csvExcelButton: '📥 Importer CSV/Excel',
         document.getElementById('expenseName').placeholder = this.t('expenseName');
         document.getElementById('expenseAmount').placeholder = this.t('expenseAmount');
         document.getElementById('chatInput').placeholder = this.t('chatPlaceholder');
-        const skipRowsLabel = document.getElementById('skipRowsLabel');
-if (skipRowsLabel) skipRowsLabel.textContent = this.t('skipRowsLabel');
-const headerRowManualLabel = document.getElementById('headerRowManualLabel');
-if (headerRowManualLabel) headerRowManualLabel.textContent = this.t('headerRowManualLabel');
-const skipHelp = document.getElementById('skipHelp');
-if (skipHelp) skipHelp.textContent = this.t('skipHelp');
+        
         const dateLabel = document.querySelector('.date-selector label');
         if (dateLabel) dateLabel.textContent = this.t('dateLabel');
         
@@ -1335,15 +1324,24 @@ if (skipHelp) skipHelp.textContent = this.t('skipHelp');
             const closeCatBtn = document.getElementById('closeCategoryManager');
             if (closeCatBtn) closeCatBtn.textContent = this.t('close');
         }
-// Traduzioni per Excel
-const excelSheetLabel = document.getElementById('excelSheetLabel');
-if (excelSheetLabel) excelSheetLabel.textContent = this.t('excelSheetLabel');
-const excelHeaderLabel = document.getElementById('excelHeaderLabel');
-if (excelHeaderLabel) excelHeaderLabel.textContent = this.t('excelHeaderLabel');
-const excelHelp = document.getElementById('excelHelp');
-if (excelHelp) excelHelp.textContent = this.t('excelHelp');
-const importBtn = document.getElementById('importCsvBtn');
-if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
+
+        // Traduci i bottoni dei tab
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        if (tabButtons.length >= 5) {
+            tabButtons[0].textContent = this.t('tabHome');
+            tabButtons[1].textContent = this.t('tabIncomes');
+            tabButtons[2].textContent = this.t('tabFixed');
+            tabButtons[3].textContent = this.t('tabVariable');
+            tabButtons[4].textContent = this.t('tabTools');
+        }
+
+        // Traduzioni per skip rows
+        const skipRowsLabel = document.getElementById('skipRowsLabel');
+        if (skipRowsLabel) skipRowsLabel.textContent = this.t('skipRowsLabel');
+        const headerRowManualLabel = document.getElementById('headerRowManualLabel');
+        if (headerRowManualLabel) headerRowManualLabel.textContent = this.t('headerRowManualLabel');
+        const skipHelp = document.getElementById('skipHelp');
+        if (skipHelp) skipHelp.textContent = this.t('skipHelp');
 
         this.updateIncomeList();
         this.updateFixedExpensesList();
@@ -2020,8 +2018,7 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
             });
         });
     }
-
-    editVariableExpense(date, id) {
+        editVariableExpense(date, id) {
         date = this.normalizeIsoDate(date);
         if (!this.data.variableExpenses || !this.data.variableExpenses[date]) return;
         const idx = this.data.variableExpenses[date].findIndex(e => e.id === id);
@@ -2787,8 +2784,7 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
             cancelBtn.addEventListener('click', onCancel);
         });
     }
-
-            // ========== MAPPATURA CAMPI CSV ==========
+        // ========== MAPPATURA CAMPI CSV ==========
     async showMappingDialog(file, delimiter, skipRows = 0, headerRow = 1) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('csvMappingOverlay');
@@ -2812,13 +2808,12 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     return;
                 }
                 
-                // 1. Salta le righe iniziali
+                // Salta le righe iniziali
                 const startLine = Math.min(skipRows, lines.length - 1);
-                
-                // 2. Determina la riga di intestazione
                 let headerLine = startLine;
+                
+                // Se headerRow è > 0, la riga di intestazione è startLine + (headerRow - 1)
                 if (headerRow > 0) {
-                    // headerRow = 1 significa la prima riga dopo skipRows
                     headerLine = startLine + (headerRow - 1);
                     if (headerLine >= lines.length) {
                         alert(`Riga intestazione ${headerRow} non trovata. Uso la prima riga disponibile.`);
@@ -2826,10 +2821,9 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     }
                 }
                 
-                // 3. Estrai intestazione
+                // Estrai intestazione
                 let headers = [];
                 if (headerRow > 0) {
-                    // Usa la riga specificata come intestazione
                     headers = lines[headerLine].split(delimiter).map(h => h.trim());
                 } else {
                     // Nessuna intestazione: crea colonne fittizie
@@ -2837,10 +2831,9 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     headers = sampleLine.split(delimiter).map((_, i) => `Colonna ${i+1}`);
                 }
                 
-                // 4. Prepara dati per anteprima (dopo l'intestazione)
+                // Prepara dati per anteprima (dopo l'intestazione)
                 const previewData = [];
-                const dataStartLine = headerLine + 1; // Inizia dopo l'intestazione
-                
+                const dataStartLine = headerLine + 1;
                 for (let i = dataStartLine; i < Math.min(dataStartLine + 5, lines.length); i++) {
                     previewData.push(lines[i].split(delimiter).map(cell => cell.trim()));
                 }
@@ -2929,7 +2922,8 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
             reader.readAsText(file);
         });
     }
-           // ========== IMPORT CSV CON MAPPATURA ==========
+    
+    // ========== IMPORT CSV CON MAPPATURA ==========
     async parseCSV(file, delimiter, dateFormat, skipRows = 0, headerRow = 1) {
         console.log('📥 Inizio import CSV:', file.name, 'delimiter:', delimiter, 'dateFormat:', dateFormat, 'skipRows:', skipRows, 'headerRow:', headerRow);
         
@@ -2970,7 +2964,6 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                 
                 if (!dateStr || !description || !amountStr) continue;
                 
-                // Gestione formato data
                 if (dateFormat === 'DD/MM/YYYY') {
                     const parts = dateStr.split(/[\/\-]/);
                     if (parts.length === 3) {
@@ -3061,6 +3054,7 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
         
         reader.readAsText(file);
     }
+
     // ========== IMPORT EXCEL ==========
     async parseExcel(file, sheetIndex = 0, headerRow = 0) {
         console.log('📥 Inizio import Excel:', file.name, 'foglio:', sheetIndex, 'headerRow:', headerRow);
@@ -3078,11 +3072,6 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     const worksheet = workbook.Sheets[sheetName];
                     
                     // Converti in JSON con intestazione se specificata
-                    const options = { header: 1, defval: '' }; // array di array
-                    if (headerRow >= 0) {
-                        options.range = headerRow; // parte dalla riga specificata
-                    }
-                    
                     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
                     
                     if (rows.length === 0) {
@@ -3130,10 +3119,7 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
     }
 
     async importFromVirtualCSV(file, delimiter, dateFormat, originalName) {
-        // Usa la funzione parseCSV esistente, ma prima mostriamo un messaggio
         console.log('🔄 Conversione da Excel a CSV per:', originalName);
-        
-        // Chiama parseCSV con il file virtuale
         await this.parseCSV(file, delimiter, dateFormat);
     }
 
@@ -3523,7 +3509,6 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
 
         if (!applyBtn) return;
 
-        // Evita doppie registrazioni listener (GitHub Pages / SW cache / reload)
         const cleanApplyBtn = applyBtn.cloneNode(true);
         applyBtn.parentNode.replaceChild(cleanApplyBtn, applyBtn);
 
@@ -3593,6 +3578,8 @@ setTimeout(function() {
     const btn = document.getElementById('importCsvBtn');
     const fileInput = document.getElementById('csvFile');
     const fileNameSpan = document.getElementById('csvFileName');
+    const skipRowsInput = document.getElementById('skipRows');
+    const headerRowInput = document.getElementById('headerRowManual');
     
     if (!btn || !fileInput || !window.app) {
         console.error('Elementi import non trovati');
@@ -3616,24 +3603,20 @@ setTimeout(function() {
         
         try {
             if (isExcel) {
-                // Per Excel, usiamo un alert semplice
                 if (typeof XLSX === 'undefined') {
                     alert('❌ Libreria Excel non caricata. Ricarica la pagina.');
                     return;
                 }
                 
-                // Leggi il file Excel
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     try {
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
                         
-                        // Prendi il primo foglio
                         const firstSheet = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheet];
                         
-                        // Converti in JSON (array di array)
                         const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                         
                         if (rows.length < 2) {
@@ -3641,28 +3624,24 @@ setTimeout(function() {
                             return;
                         }
                         
-                        // La prima riga sono le intestazioni
                         const headers = rows[0];
                         const dataRows = rows.slice(1);
                         
-                        // Converti in formato CSV
                         const csvContent = [headers, ...dataRows]
                             .map(row => row.map(cell => String(cell).trim()).join(','))
                             .join('\n');
                         
-                        // Crea un file virtuale
                         const virtualFile = new File([csvContent], 'temp.csv', { type: 'text/csv' });
                         
-                        // Importa come CSV
                         const delimiter = document.getElementById('csvSeparator').value;
                         const dateFormat = document.getElementById('csvDelimiter').value;
+                        const skipRows = parseInt(skipRowsInput?.value || '0');
+                        const headerRow = parseInt(headerRowInput?.value || '1');
                         
                         btn.textContent = '⏳ Importazione...';
                         btn.disabled = true;
                         
-                        await window.app.parseCSV(virtualFile, delimiter, dateFormat);
-                        
-                        alert('✅ Import Excel completato!');
+                        await window.app.parseCSV(virtualFile, delimiter, dateFormat, skipRows, headerRow);
                         
                     } catch (err) {
                         alert('❌ Errore lettura Excel: ' + err.message);
@@ -3676,18 +3655,16 @@ setTimeout(function() {
                 reader.readAsArrayBuffer(file);
                 
             } else {
-                // Import CSV normale
                 const delimiter = document.getElementById('csvSeparator').value;
                 const dateFormat = document.getElementById('csvDelimiter').value;
-                const skipRows = parseInt(document.getElementById('skipRows')?.value || '0');
-                const headerRow = parseInt(document.getElementById('headerRowManual')?.value || '1');
+                const skipRows = parseInt(skipRowsInput?.value || '0');
+                const headerRow = parseInt(headerRowInput?.value || '1');
                 
                 btn.textContent = '⏳ Importazione...';
                 btn.disabled = true;
                 
                 await window.app.parseCSV(file, delimiter, dateFormat, skipRows, headerRow);
                 
-                alert('✅ Import CSV completato!');
                 btn.textContent = '📥 Importa CSV/Excel';
                 btn.disabled = false;
                 fileInput.value = '';
