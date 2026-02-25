@@ -145,7 +145,7 @@ class BudgetWise {
                 onboardingStep3: '🧾 Registra una spesa variabile come la spesa alimentare.',
                 onboardingStep4: '📊 Controlla il tuo budget giornaliero nel riquadro in alto.',
                 onboardingStep5: '🤖 Chiedi consigli all\'assistente AI o prova il microfono.',
-                onboardingStep6: '📥 Puoi anche importare movimenti bancari in formato CSV.',
+                onboardingStep6: '📥 Puoi anche importare movimenti bancari in formato CSV o Excel.',
                 onboardingNext: 'Avanti →',
                 onboardingSkip: 'Salta',
                 
@@ -158,10 +158,10 @@ class BudgetWise {
                 
                 // Traduzioni CSV
                 csvTitle: '📥 Importa movimenti bancari',
-                csvSubtitle: 'Scarica l\'estratto conto dalla tua banca in formato CSV',
-                csvChooseFile: 'Scegli il file',
+                csvSubtitle: 'Scarica l\'estratto conto dalla tua banca in formato CSV o Excel (.xlsx)',
+                csvChooseFile: 'Scegli file CSV o Excel',
                 csvNoFile: 'Nessun file selezionato',
-                csvImportBtn: '📥 Importa CSV',
+                csvImportBtn: '📥 Importa CSV / Excel',
                 csvDateFormat: 'Formato data',
                 csvSeparator: 'Separatore',
                 csvComma: 'Virgola (,)',
@@ -3946,6 +3946,8 @@ setTimeout(function() {
     const headerRowInput = document.getElementById('headerRowManual');
     const sheetSelect = document.getElementById('excelSheet');
     const excelHeaderSelect = document.getElementById('excelHeaderRow');
+    const advancedToggle = document.getElementById('importAdvancedToggle');
+    const advancedWrap = document.getElementById('importAdvanced');
     
     if (!btn || !fileInput || !window.app) {
         console.error('Elementi import non trovati');
@@ -3954,6 +3956,15 @@ setTimeout(function() {
 
     // Variabile per tenere traccia del file Excel in attesa
     window._pendingExcelFile = null;
+
+    // Toggle opzioni avanzate (default: nascoste)
+    if (advancedToggle && advancedWrap) {
+        advancedToggle.addEventListener('click', () => {
+            const isOpen = advancedWrap.style.display !== 'none';
+            advancedWrap.style.display = isOpen ? 'none' : 'block';
+            advancedToggle.textContent = isOpen ? '⚙️ Opzioni avanzate' : '✕ Nascondi opzioni';
+        });
+    }
 
     btn.addEventListener('click', function(ev) {
         // Se non è stato selezionato nessun file, apri il picker.
@@ -4002,8 +4013,8 @@ fileInput.addEventListener('change', async function(e) {
                         
                         // Salva il file per dopo
                         window._pendingExcelFile = file;
-                        
-                        alert('✅ File Excel caricato. Seleziona il foglio e premi "Importa CSV/Excel"');
+	                        // UX: niente alert bloccanti. Se l'utente non apre le opzioni avanzate,
+	                        // importeremo automaticamente il primo foglio con rilevazione intestazione.
                         
                     } catch (err) {
                         alert('❌ Errore nella lettura del file Excel: ' + err.message);
@@ -4035,25 +4046,19 @@ fileInput.addEventListener('change', async function(e) {
         }
         
         const fileToImport = pendingFile || file;
-        const fileExt = fileToImport.name.split('.').pop().toLowerCase();
+	        const fileExt = fileToImport.name.split('.').pop().toLowerCase();
         const isExcel = ['xls', 'xlsx'].includes(fileExt);
         
         try {
             if (isExcel) {
-                // Validazione Excel
-                if (!sheetSelect || sheetSelect.disabled) {
-                    alert('Attendi il caricamento del file Excel');
-                    return;
-                }
-                
-                const sheetIndex = parseInt(sheetSelect.value);
-                if (isNaN(sheetIndex) || sheetIndex < 0) {
-                    alert('Seleziona un foglio Excel valido');
-                    return;
-                }
-                
-                // Usa headerRow da excelHeaderSelect o da headerRowInput
-                const headerRow = excelHeaderSelect ? parseInt(excelHeaderSelect.value) : parseInt(headerRowInput?.value || '0');
+	                // Excel: 1-click. Se le opzioni avanzate non sono usate, importiamo
+	                // il primo foglio (0) e lasciamo che parseExcel rilevi l'intestazione.
+	                const sheetIndex = (sheetSelect && !sheetSelect.disabled && sheetSelect.value !== '')
+	                    ? parseInt(sheetSelect.value)
+	                    : 0;
+	                const headerRow = excelHeaderSelect
+	                    ? parseInt(excelHeaderSelect.value || '-1')
+	                    : -1;
                 
                 btn.textContent = '⏳ Importazione...';
                 btn.disabled = true;
@@ -4090,8 +4095,13 @@ fileInput.addEventListener('change', async function(e) {
         } catch (error) {
             alert('❌ Errore durante l\'import: ' + (error?.message || String(error)));
             console.error(error);
-        } finally {
-            btn.textContent = '📥 Importa CSV/Excel';
+	        } finally {
+	            // Ripristina etichetta originale (con traduzioni)
+	            try {
+	                btn.innerHTML = window.app?.t ? window.app.t('csvImportBtn') : '📥 Importa CSV / Excel';
+	            } catch {
+	                btn.textContent = '📥 Importa CSV / Excel';
+	            }
             btn.disabled = false;
         }
     });

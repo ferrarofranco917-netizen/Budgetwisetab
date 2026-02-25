@@ -317,6 +317,34 @@ input:focus, select:focus {
     width: 100%;
 }
 
+/* Import UX */
+.import-actions{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+}
+
+.btn-link{
+  background: transparent;
+  border: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-link:hover{
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--text-primary);
+}
+
+.import-advanced{
+  margin-top: 10px;
+}
+
 .btn-secondary:hover {
     background: var(--border);
     border-color: var(--accent);
