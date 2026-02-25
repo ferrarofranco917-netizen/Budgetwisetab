@@ -1326,17 +1326,8 @@ const excelHeaderLabel = document.getElementById('excelHeaderLabel');
 if (excelHeaderLabel) excelHeaderLabel.textContent = this.t('excelHeaderLabel');
 const excelHelp = document.getElementById('excelHelp');
 if (excelHelp) excelHelp.textContent = this.t('excelHelp');
-const importCsvBtn = document.getElementById('importCsvBtn');
-if (importCsvBtn) importCsvBtn.innerHTML = this.t('csvExcelButton');
-        // Traduci i bottoni dei tab
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        if (tabButtons.length >= 5) {
-            tabButtons[0].textContent = this.t('tabHome');
-            tabButtons[1].textContent = this.t('tabIncomes');
-            tabButtons[2].textContent = this.t('tabFixed');
-            tabButtons[3].textContent = this.t('tabVariable');
-            tabButtons[4].textContent = this.t('tabTools');
-        }
+const importBtn = document.getElementById('importCsvBtn');
+if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
 
         this.updateIncomeList();
         this.updateFixedExpensesList();
