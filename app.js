@@ -2467,7 +2467,7 @@ class BudgetWise {
             }
         };
        reader.readAsText(file);
-        });
+        }
     }
 
     resetAll() {
