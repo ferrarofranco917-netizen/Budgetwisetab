@@ -12,9 +12,14 @@ class BudgetWise {
             savingsGoal: 0,
             threshold: 50,
             language: 'it',
-            periodStart: this.getDefaultPeriodStart(),
-            periodEnd: this.getDefaultPeriodEnd()
+            // Periodo: viene inizializzato dopo l'assegnazione di this.data
+            periodStart: '',
+            periodEnd: ''
         };
+
+        // Inizializza il periodo di default (oggi/+28) o basato su stipendio, se presente nei dati caricati.
+        this.data.periodStart = this.getDefaultPeriodStart();
+        this.data.periodEnd = this.getDefaultPeriodEnd();
         
         this.chart = null;
         this.categoryExpenses = {};
