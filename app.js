@@ -2450,7 +2450,7 @@ class BudgetWise {
         alert(this.t('backupDownloaded'));
     }
 
-    restoreData(event) {
+        restoreData(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -2466,10 +2466,8 @@ class BudgetWise {
                 alert(this.t('invalidFile'));
             }
         };
-       reader.readAsText(file);
-        }
+        reader.readAsText(file);
     }
-
     resetAll() {
         if (confirm(this.t('confirmReset'))) {
             localStorage.clear();
