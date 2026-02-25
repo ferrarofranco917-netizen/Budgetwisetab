@@ -1325,7 +1325,8 @@ class BudgetWise {
 
         this.updatePeriodInfo();
     }
-      initTabs() {
+
+    initTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         const sections = document.querySelectorAll('.section-card[data-tab]');
 
@@ -2034,8 +2035,651 @@ class BudgetWise {
         this.showToast(this.data.language === 'it' ? '✅ Spesa aggiornata' : '✅ Expense updated', 'success');
     }
 
-getCategoryEmoji
-            // ========== REVISIONE IMPORT CSV ==========
+    updateChart() {
+        const categories = {};
+        const categoryExpenses = {};
+
+        if (this.data.variableExpenses && typeof this.data.variableExpenses === 'object') {
+            Object.entries(this.data.variableExpenses).forEach(([date, dayExpenses]) => {
+                if (!Array.isArray(dayExpenses)) return;
+                dayExpenses.forEach(expense => {
+                    const cat = expense.category || 'Altro';
+                    const amt = Number(expense.amount || 0) || 0;
+                    categories[cat] = (categories[cat] || 0) + amt;
+
+                    if (!categoryExpenses[cat]) categoryExpenses[cat] = [];
+                    categoryExpenses[cat].push({
+                        name: expense.name || '?',
+                        amount: amt,
+                        date: date
+                    });
+                });
+            });
+        }
+
+        const chartNote = document.getElementById('chartNote');
+        const categoryDetail = document.getElementById('categoryDetail');
+
+        if (Object.keys(categories).length === 0) {
+            if (chartNote) chartNote.style.display = 'block';
+            if (categoryDetail) categoryDetail.style.display = 'none';
+            if (this.chart) this.chart.destroy();
+            this.chart = null;
+            this.categoryExpenses = {};
+            return;
+        }
+
+        if (chartNote) chartNote.style.display = 'none';
+
+        if (this.chart) this.chart.destroy();
+        this.chart = null;
+
+        const canvas = document.getElementById('expenseChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        this.chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(categories),
+                datasets: [{
+                    data: Object.values(categories),
+                    backgroundColor: ['#7c3aed', '#a78bfa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                    borderColor: 'transparent'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                return `${label}: ${this.formatCurrency(value)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                onClick: (event, items) => {
+                    if (items && items.length > 0) {
+                        const index = items[0].index;
+                        const categoryName = this.chart.data.labels[index];
+                        this.showCategoryDetail(categoryName, categoryExpenses[categoryName] || []);
+                    }
+                }
+            }
+        });
+
+        this.categoryExpenses = categoryExpenses;
+    }
+
+    showCategoryDetail(categoryName, expenses) {
+        const detailContainer = document.getElementById('categoryDetail');
+        const titleEl = document.getElementById('detailCategoryTitle');
+        const totalEl = document.getElementById('detailTotal');
+        const comparisonEl = document.getElementById('detailComparison');
+        const listEl = document.getElementById('detailExpensesList');
+        if (!detailContainer) return;
+        const total = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+        const lastMonthTotal = total * 0.85;
+        const difference = total - lastMonthTotal;
+        const percentChange = ((difference / lastMonthTotal) * 100).toFixed(1);
+        const trend = difference >= 0 ? '📈' : '📉';
+        const comparisonText = this.data.language === 'it'
+            ? `${trend} ${Math.abs(percentChange)}% ${difference >= 0 ? 'in più' : 'in meno'} rispetto al mese scorso`
+            : `${trend} ${Math.abs(percentChange)}% ${difference >= 0 ? 'more' : 'less'} than last month`;
+        titleEl.textContent = categoryName;
+        totalEl.textContent = this.t('detailTotal', { total: this.formatCurrency(total) });
+        comparisonEl.textContent = comparisonText;
+        if (expenses.length === 0) {
+            listEl.innerHTML = `<p class="chart-note">${this.t('noExpensesShort')}</p>`;
+        } else {
+            listEl.innerHTML = expenses.map(exp => `
+                <div class="detail-expense-item">
+                    <span class="expense-name">${exp.name || '?'}</span>
+                    <span class="expense-amount">${this.formatCurrency(exp.amount || 0)}</span>
+                </div>
+            `).join('');
+        }
+        detailContainer.style.display = 'block';
+    }
+
+    formatCurrency(amount) {
+        const value = Number(amount || 0);
+        const lang = this.data.language || 'it';
+        const localeMap = { it: 'it-IT', en: 'en-GB', es: 'es-ES', fr: 'fr-FR' };
+        const locale = localeMap[lang] || 'it-IT';
+        try {
+            return new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value);
+        } catch {
+            return `${value.toFixed(2)} €`;
+        }
+    }
+
+    highlightField(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        field.style.transition = 'background-color 0.3s ease';
+        field.style.backgroundColor = '#d4edda';
+        field.style.borderColor = '#28a745';
+        setTimeout(() => {
+            field.style.backgroundColor = '';
+            field.style.borderColor = '';
+        }, 800);
+    }
+
+    showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.background = type === 'success' ? '#2dc653' : '#ef233c';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    handleChatInput() {
+        const input = document.getElementById('chatInput');
+        const question = input.value.trim();
+        if (!question) return;
+        this.addChatMessage('user', question);
+        input.value = '';
+        setTimeout(() => {
+            const answer = this.generateAnswer(question);
+            this.addChatMessage('bot', answer);
+        }, 500);
+    }
+
+    addChatMessage(sender, text) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = `chat-message ${sender}`;
+        div.innerHTML = `<span class="message-sender">${sender === 'bot' ? '🤖 ' + this.t('assistantName') : '👤 ' + (this.data.language === 'it' ? 'Tu' : 'You')}:</span> <span class="message-text">${text}</span>`;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    generateAnswer(question) {
+        const q = question.toLowerCase();
+        const remaining = this.calculateRemaining();
+        const dailyBudget = this.calculateDailyBudget();
+        const totalSpent = this.calculateTotalVariableExpenses();
+        const totalFixed = this.calculateTotalFixedExpenses();
+        const daysLeft = this.getDaysLeft();
+        if (q.includes('risparmi') || q.includes('risparmiare') || q.includes('save')) {
+            const match = q.match(/(\d+)/);
+            if (match) {
+                const target = parseInt(match[0]);
+                const daily = dailyBudget;
+                if (daily * daysLeft >= target) {
+                    return `✅ ${this.data.language === 'it' ? 'Sì! Puoi risparmiare' : 'Yes! You can save'} ${target}€. ${this.data.language === 'it' ? 'Ti basterebbe risparmiare' : 'You would need to save'} ${(target/daysLeft).toFixed(2)}€ ${this.data.language === 'it' ? 'al giorno' : 'per day'}.`;
+                } else {
+                    return `⚠️ ${this.data.language === 'it' ? 'Con l\'attuale budget' : 'With your current budget'} ${this.formatCurrency(daily)} ${this.data.language === 'it' ? 'al giorno' : 'per day'}, ${this.data.language === 'it' ? 'in' : 'in'} ${daysLeft} ${this.data.language === 'it' ? 'giorni avrai' : 'days you\'ll have'} ${this.formatCurrency(daily * daysLeft)}.`;
+                }
+            }
+        }
+        if (q.includes('categoria') || q.includes('category') || q.includes('spendo di più') || q.includes('spend most')) {
+            const categories = {};
+            if (this.data.variableExpenses && typeof this.data.variableExpenses === 'object') {
+                Object.values(this.data.variableExpenses).forEach(day => {
+                    if (Array.isArray(day)) {
+                        day.forEach(exp => {
+                            const catName = exp.category || 'Altro';
+                            categories[catName] = (categories[catName] || 0) + (exp.amount || 0);
+                        });
+                    }
+                });
+            }
+            if (Object.keys(categories).length === 0) return this.t('noExpenses');
+            const top = Object.entries(categories).sort((a,b) => b[1] - a[1])[0];
+            return `📊 ${this.data.language === 'it' ? 'La categoria in cui spendi di più è' : 'The category where you spend the most is'} "${top[0]}" ${this.data.language === 'it' ? 'con' : 'with'} ${this.formatCurrency(top[1])}.`;
+        }
+        if (q.includes('obiettivo') || q.includes('goal')) {
+            const goal = this.data.savingsGoal;
+            const percent = this.data.savingsPercent;
+            const income = this.calculateTotalIncome();
+            if (!goal || !percent) return this.t('noGoal');
+            const savedPerMonth = (income * percent) / 100;
+            const monthsNeeded = Math.ceil(goal / savedPerMonth);
+            return `🎯 ${this.data.language === 'it' ? 'Raggiungerai l\'obiettivo in' : 'You\'ll reach your goal in'} ${monthsNeeded} ${this.data.language === 'it' ? 'mesi' : 'months'}.`;
+        }
+        return this.getContextualAdvice();
+    }
+
+    getContextualAdvice() {
+        const remaining = this.calculateRemaining();
+        const dailyBudget = this.calculateDailyBudget();
+        if (remaining < 0) {
+            return this.t("adviceRed");
+        } else if (remaining < dailyBudget * 7) {
+            return this.t("adviceLowRemaining", { remaining: this.formatCurrency(remaining) });
+        } else {
+            return this.t("adviceGood", { remaining: this.formatCurrency(remaining) });
+        }
+    }
+
+    toggleTheme() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+        document.getElementById('themeToggle').textContent = isDark ? '🌙' : '☀️';
+        localStorage.setItem('budgetwise-theme', isDark ? 'light' : 'dark');
+        this.updateChart();
+    }
+
+    applyTheme() {
+        if (localStorage.getItem('budgetwise-theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('themeToggle').textContent = '☀️';
+        }
+    }
+
+    getCurrentThemeColors() {
+        const style = getComputedStyle(document.documentElement);
+        return {
+            accent: style.getPropertyValue('--accent').trim() || '#7c3aed',
+            accentLight: style.getPropertyValue('--accent-light').trim() || '#a78bfa',
+            cardBg: style.getPropertyValue('--card-bg').trim() || '#ffffff',
+            textPrimary: style.getPropertyValue('--text-primary').trim() || '#0f172a',
+            textSecondary: style.getPropertyValue('--text-secondary').trim() || '#334155',
+            bg: style.getPropertyValue('--bg-color').trim() || '#f8fafc',
+            success: style.getPropertyValue('--success').trim() || '#10b981',
+            danger: style.getPropertyValue('--danger').trim() || '#ef4444',
+            warning: style.getPropertyValue('--warning').trim() || '#f59e0b',
+            border: style.getPropertyValue('--border').trim() || '#e2e8f0'
+        };
+    }
+
+    applyCustomColors() {
+        if (!this.customColors) {
+            this.customColors = this.getCurrentThemeColors();
+        }
+        document.documentElement.style.setProperty('--accent', this.customColors.accent);
+        document.documentElement.style.setProperty('--accent-light', this.customColors.accentLight);
+        document.documentElement.style.setProperty('--card-bg', this.customColors.cardBg);
+        document.documentElement.style.setProperty('--text-primary', this.customColors.textPrimary);
+        document.documentElement.style.setProperty('--text-secondary', this.customColors.textSecondary);
+        document.documentElement.style.setProperty('--bg-color', this.customColors.bg);
+        document.documentElement.style.setProperty('--success', this.customColors.success);
+        document.documentElement.style.setProperty('--danger', this.customColors.danger);
+        document.documentElement.style.setProperty('--warning', this.customColors.warning);
+        document.documentElement.style.setProperty('--border', this.customColors.border);
+        document.documentElement.style.setProperty('--accent-gradient', 
+            `linear-gradient(135deg, ${this.customColors.accent}, ${this.customColors.accentLight})`);
+        
+        this.syncColorPickers();
+    }
+
+    syncColorPickers() {
+        const setField = (id, value) => {
+            const input = document.getElementById(id);
+            if (input) input.value = value;
+        };
+        setField('colorAccent', this.customColors.accent);
+        setField('colorAccentLight', this.customColors.accentLight);
+        setField('colorCardBg', this.customColors.cardBg);
+        setField('colorTextPrimary', this.customColors.textPrimary);
+        setField('colorTextSecondary', this.customColors.textSecondary);
+        setField('colorBg', this.customColors.bg);
+        setField('colorSuccess', this.customColors.success);
+        setField('colorDanger', this.customColors.danger);
+        setField('colorWarning', this.customColors.warning);
+        setField('colorBorder', this.customColors.border);
+    }
+
+    saveCustomColors() {
+        localStorage.setItem('budgetwise-custom-colors', JSON.stringify(this.customColors));
+    }
+
+    setupColorPickers() {
+        const colorInputs = [
+            'colorAccent', 'colorAccentLight', 'colorCardBg', 
+            'colorTextPrimary', 'colorTextSecondary', 'colorBg',
+            'colorSuccess', 'colorDanger', 'colorWarning', 'colorBorder'
+        ];
+        
+        colorInputs.forEach(id => {
+            const picker = document.getElementById(id);
+            if (picker) {
+                picker.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    const propName = id.replace('color', '').charAt(0).toLowerCase() + id.replace('color', '').slice(1);
+                    this.customColors[propName] = value;
+                    this.applyCustomColors();
+                    this.saveCustomColors();
+                });
+            }
+        });
+        
+        const resetBtn = document.getElementById('resetColorsBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.customColors = this.getCurrentThemeColors();
+                this.applyCustomColors();
+                this.saveCustomColors();
+                this.syncColorPickers();
+                this.showToast(this.t('resetColors') || 'Colori ripristinati', 'success');
+            });
+        }
+    }
+
+    saveData() {
+        localStorage.setItem('budgetwise-data', JSON.stringify(this.data));
+    }
+
+    loadData() {
+        const saved = localStorage.getItem('budgetwise-data');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                
+                if (parsed.incomes && parsed.incomes.length > 0 && !parsed.periodStart) {
+                    const firstIncome = parsed.incomes.sort((a, b) => 
+                        new Date(a.date) - new Date(b.date)
+                    )[0];
+                    
+                    const startDate = new Date(firstIncome.date);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 30);
+                    
+                    parsed.periodStart = startDate.toISOString().split('T')[0];
+                    parsed.periodEnd = endDate.toISOString().split('T')[0];
+                }
+                
+                if (parsed.income !== undefined && !parsed.incomes) {
+                    parsed.incomes = [{
+                        desc: this.data.language === 'it' ? 'Stipendio' : 'Salary',
+                        amount: parsed.income,
+                        date: new Date().toISOString().split('T')[0],
+                        id: Date.now()
+                    }];
+                    delete parsed.income;
+                }
+                
+                this.data = parsed;
+            } catch (e) {
+                console.warn('Errore nel caricamento dati, reset automatico');
+                this.resetAll();
+            }
+        }
+    }
+
+    backupData() {
+        const dataStr = JSON.stringify(this.data, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+        const link = document.createElement('a');
+        link.href = dataUri;
+        link.download = `budgetwise-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        alert(this.t('backupDownloaded'));
+    }
+
+    restoreData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                this.data = JSON.parse(e.target.result);
+                this.saveData();
+                this.updateUI();
+                this.updateChart();
+                this.applyLanguage();
+                alert(this.t('dataRestored'));
+            } catch {
+                alert(this.t('invalidFile'));
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    resetAll() {
+        if (confirm(this.t('confirmReset'))) {
+            localStorage.clear();
+            const today = new Date();
+            const end = new Date(today);
+            end.setDate(today.getDate() + 28);
+            
+            this.data = {
+                incomes: [],
+                fixedExpenses: [],
+                variableExpenses: {},
+                savingsPercent: 0,
+                savingsGoal: 0,
+                threshold: 50,
+                language: this.data.language,
+                periodStart: today.toISOString().split('T')[0],
+                periodEnd: end.toISOString().split('T')[0]
+            };
+            // Resetta anche i colori personalizzati
+            this.customColors = this.getCurrentThemeColors();
+            this.applyCustomColors();
+            this.saveCustomColors();
+            this.syncColorPickers();
+
+            this.updateUI();
+            this.updateChart();
+            this.applyLanguage();
+            alert(this.t('resetCompleted'));
+        }
+    }
+
+    exportToCalendar() {
+        let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//BudgetWise//IT\n";
+        if (Array.isArray(this.data.fixedExpenses)) {
+            this.data.fixedExpenses.forEach(exp => {
+                if (exp && exp.endDate && new Date(exp.endDate) >= new Date()) {
+                    ics += "BEGIN:VEVENT\n";
+                    ics += `SUMMARY:💰 ${exp.name || 'Spesa'}\n`;
+                    ics += `DESCRIPTION:${this.t('fixedExpense')} ${this.formatCurrency(exp.amount || 0)} - ${this.t('everyMonthOnDay')} ${exp.day || '?'}\n`;
+                    const nextDate = this.getNextPaymentDate(exp.day || 1);
+                    ics += `DTSTART;VALUE=DATE:${nextDate.replace(/-/g, '')}\n`;
+                    ics += `RRULE:FREQ=MONTHLY;UNTIL=${(exp.endDate || '').replace(/-/g, '')}\n`;
+                    ics += "END:VEVENT\n";
+                }
+            });
+        }
+        if (this.data.variableExpenses && typeof this.data.variableExpenses === 'object') {
+            Object.entries(this.data.variableExpenses).forEach(([date, expenses]) => {
+                if (Array.isArray(expenses)) {
+                    expenses.forEach(exp => {
+                        ics += "BEGIN:VEVENT\n";
+                        ics += `SUMMARY:🛒 ${exp.name || 'Spesa'}\n`;
+                        ics += `DESCRIPTION:${exp.category || 'Altro'} - ${this.formatCurrency(exp.amount || 0)}\n`;
+                        ics += `DTSTART;VALUE=DATE:${date.replace(/-/g, '')}\n`;
+                        ics += "END:VEVENT\n";
+                    });
+                }
+            });
+        }
+        ics += "END:VCALENDAR";
+        const blob = new Blob([ics], { type: 'text/calendar' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `budgetwise-${this.data.periodStart}.ics`;
+        a.click();
+        alert(this.t('calendarExported'));
+    }
+
+    // ========== IMPARARE CATEGORIE ==========
+    learnCategory(description, category) {
+        if (!description || !category) return;
+        
+        const keyword = description.toLowerCase().split(' ')[0].replace(/[^a-z0-9]/gi, '');
+        if (keyword.length < 3) return;
+        
+        this.categoryRules[keyword] = category;
+        localStorage.setItem('budgetwise-category-rules', JSON.stringify(this.categoryRules));
+        console.log(`📌 Appreso: "${keyword}" → ${category}`);
+    }
+
+    suggestCategory(description) {
+        const lowerDesc = description.toLowerCase();
+        
+        for (const [keyword, category] of Object.entries(this.categoryRules)) {
+            if (lowerDesc.includes(keyword)) {
+                return category;
+            }
+        }
+        
+        return 'Altro';
+    }
+
+    // ========== GESTIONE CATEGORIE PERSONALIZZATE ==========
+    getAllCategories() {
+        return [...this.defaultCategories, ...this.customCategories];
+    }
+    
+    saveCustomCategories() {
+        localStorage.setItem('budgetwise-custom-categories', JSON.stringify(this.customCategories));
+    }
+    
+    showCategoryManager() {
+        const overlay = document.getElementById('categoryManagerOverlay');
+        if (!overlay) return;
+        this.refreshCategoryList();
+        overlay.style.display = 'flex';
+    }
+    
+    hideCategoryManager() {
+        const overlay = document.getElementById('categoryManagerOverlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+    
+    refreshCategoryList() {
+        const defaultList = document.getElementById('defaultCategoriesList');
+        const customList = document.getElementById('customCategoriesList');
+        
+        if (defaultList) {
+            defaultList.innerHTML = this.defaultCategories.map(cat => {
+                let translationKey = '';
+                switch(cat) {
+                    case 'Alimentari': translationKey = 'categoryAlimentari'; break;
+                    case 'Trasporti': translationKey = 'categoryTrasporti'; break;
+                    case 'Svago': translationKey = 'categorySvago'; break;
+                    case 'Salute': translationKey = 'categorySalute'; break;
+                    case 'Abbigliamento': translationKey = 'categoryAbbigliamento'; break;
+                    case 'Altro': translationKey = 'categoryAltro'; break;
+                    default: translationKey = cat;
+                }
+                const displayName = this.t(translationKey);
+                return `<div class="category-item default"><span>${displayName}</span></div>`;
+            }).join('');
+        }
+        
+        if (customList) {
+            if (this.customCategories.length === 0) {
+                customList.innerHTML = `<p class="empty-message">${this.t('noCustomCategories')}</p>`;
+            } else {
+                customList.innerHTML = this.customCategories.map((cat, index) => `
+                    <div class="category-item custom">
+                        <span>${cat}</span>
+                        <div>
+                            <button class="edit-category-btn" data-index="${index}">✏️</button>
+                            <button class="delete-category-btn" data-index="${index}">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.edit-category-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        this.editCategory(parseInt(index));
+                    });
+                });
+                
+                document.querySelectorAll('.delete-category-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        this.deleteCategory(parseInt(index));
+                    });
+                });
+            }
+        }
+    }
+    
+    editCategory(index) {
+        const oldName = this.customCategories[index];
+        const newName = prompt(this.t('categoryName'), oldName);
+        if (!newName || newName.trim() === '') return;
+        const trimmed = newName.trim();
+        
+        if (this.getAllCategories().includes(trimmed) && trimmed !== oldName) {
+            alert(this.t('categoryAlreadyExists'));
+            return;
+        }
+        
+        this.customCategories[index] = trimmed;
+        this.saveCustomCategories();
+        this.refreshCategoryList();
+        this.updateAllCategorySelects();
+        alert(this.t('categoryUpdated'));
+    }
+    
+    deleteCategory(index) {
+        const cat = this.customCategories[index];
+        if (!confirm(this.t('confirmDeleteCategory').replace('{name}', cat))) return;
+        
+        this.customCategories.splice(index, 1);
+        this.saveCustomCategories();
+        this.refreshCategoryList();
+        this.updateAllCategorySelects();
+        alert(this.t('categoryDeleted'));
+    }
+    
+    saveCategory() {
+        const input = document.getElementById('newCategoryName');
+        if (!input) return;
+        const newCat = input.value.trim();
+        if (!newCat) return;
+        
+        if (this.getAllCategories().includes(newCat)) {
+            alert(this.t('categoryAlreadyExists'));
+            return;
+        }
+        
+        this.customCategories.push(newCat);
+        this.saveCustomCategories();
+        input.value = '';
+        this.refreshCategoryList();
+        this.updateAllCategorySelects();
+        alert(this.t('categoryAdded'));
+    }
+    
+    updateAllCategorySelects() {
+        const categories = this.getAllCategories();
+        const optionsHtml = categories.map(cat => 
+            `<option value="${cat}">${this.getCategoryEmoji(cat)} ${cat}</option>`
+        ).join('');
+        
+        const mainSelect = document.getElementById('expenseCategory');
+        if (mainSelect) {
+            mainSelect.innerHTML = optionsHtml;
+        }
+    }
+    
+    getCategoryEmoji(category) {
+        const emojiMap = {
+            'Alimentari': '🍎',
+            'Trasporti': '🚗',
+            'Svago': '🎮',
+            'Salute': '💊',
+            'Abbigliamento': '👕',
+            'Altro': '📦'
+        };
+        return emojiMap[category] || '📌';
+    }
+
+    // ========== REVISIONE IMPORT CSV ==========
     showImportReview(importedExpenses) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('importReviewOverlay');
@@ -2394,4 +3038,424 @@ getCategoryEmoji
         card.innerHTML = `
             <div style="font-size: 3.5rem; margin-bottom: 10px;">✨</div>
             <h3 style="margin: 0 0 5px; color: var(--accent); font-size: 2rem; font-weight: 800;">${this.t('onboardingWelcome')}</h3>
-            <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 25px
+            <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 25px; opacity: 0.9;">${this.t('onboardingSubtitle')}</p>
+
+            <div style="background: var(--bg-color); padding: 15px; border-radius: 16px; margin-bottom: 25px; border-left: 4px solid var(--accent); text-align: left;">
+                <p id="onboarding-description" style="margin: 0; color: var(--text-primary); font-size: 1.1rem; font-weight: 500;"></p>
+            </div>
+
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom: 14px;">
+                <button id="onboarding-next" class="btn-primary" style="padding: 14px 32px; font-size: 1.1rem; border-radius: 50px; min-width: 140px; font-weight: 700;">
+                    ${this.t('onboardingNext')}
+                </button>
+                <button id="onboarding-skip" class="btn-secondary" style="padding: 14px 32px; font-size: 1.1rem; border-radius: 50px; min-width: 140px; background: transparent; border: 2px solid var(--border);">
+                    ✕ ${this.t('onboardingSkip')}
+                </button>
+            </div>
+
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom: 14px;">
+                <button id="onboarding-demo" class="btn-secondary" style="padding: 12px 20px; border-radius: 50px; min-width: 180px;">
+                    ${this.t('onboardingDemo')}
+                </button>
+                <button id="onboarding-empty" class="btn-text" style="padding: 12px 14px;">
+                    ${this.t('onboardingEmpty')}
+                </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                <span style="font-size: 0.9rem; color: var(--text-secondary); min-width: 40px;"><span id="onboarding-counter" style="font-weight: 700; color: var(--accent);">1</span>/${steps.length}</span>
+                <div style="flex: 1; height: 6px; background: var(--border); border-radius: 6px; overflow: hidden;">
+                    <div id="onboarding-progress" style="width: ${(1/steps.length)*100}%; height: 100%; background: linear-gradient(90deg, var(--accent-light), var(--accent)); transition: width 0.4s ease;"></div>
+                </div>
+            </div>
+        `;
+
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+
+        if (!document.getElementById('onboarding-style')) {
+            const style = document.createElement('style');
+            style.id = 'onboarding-style';
+            style.textContent = `
+                @keyframes onboardingSlideUp {
+                    from { transform: translateY(40px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                .onboarding-highlight {
+                    animation: targetGlow 2s infinite !important;
+                    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.6) !important;
+                }
+                @keyframes targetGlow {
+                    0% { box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.6); }
+                    50% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 1), 0 0 50px rgba(124, 58, 237, 0.9); }
+                    100% { box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.6); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const closeOnboarding = () => {
+            localStorage.setItem('budgetwise-onboarding-completed', 'true');
+            this.markFirstRunSeen();
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.remove(), 250);
+            document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
+        };
+
+        const showStep = () => {
+            const step = steps[stepIndex];
+            const descEl = document.getElementById('onboarding-description');
+            if (descEl) descEl.textContent = step.text;
+
+            const counterEl = document.getElementById('onboarding-counter');
+            if (counterEl) counterEl.innerText = String(stepIndex + 1);
+
+            const progress = ((stepIndex + 1) / steps.length) * 100;
+            const progressBar = document.getElementById('onboarding-progress');
+            if (progressBar) progressBar.style.width = progress + '%';
+
+            document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
+
+            const target = document.querySelector(step.highlight);
+            if (target) {
+                target.classList.add('onboarding-highlight');
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+
+        const nextBtn = document.getElementById('onboarding-next');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                stepIndex++;
+                if (stepIndex < steps.length) showStep();
+                else closeOnboarding();
+            });
+        }
+
+        const skipBtn = document.getElementById('onboarding-skip');
+        if (skipBtn) {
+            skipBtn.addEventListener('click', () => closeOnboarding());
+        }
+
+        const demoBtn = document.getElementById('onboarding-demo');
+        if (demoBtn) {
+            demoBtn.addEventListener('click', () => {
+                this.loadDemoData();
+                closeOnboarding();
+            });
+        }
+
+        const emptyBtn = document.getElementById('onboarding-empty');
+        if (emptyBtn) {
+            emptyBtn.addEventListener('click', () => closeOnboarding());
+        }
+
+        showStep();
+    }
+
+    setupVoice() {
+        console.log('Setup voice...');
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            console.warn('Riconoscimento vocale non supportato');
+            const voiceBtn = document.getElementById('voiceBtn');
+            if (voiceBtn) {
+                voiceBtn.disabled = true;
+                voiceBtn.innerHTML = '🎤 ' + (this.data.language === 'it' ? 'Non supportato' : 'Not supported');
+            }
+            return;
+        }
+        console.log('✅ Riconoscimento vocale supportato');
+        const micFixed = document.getElementById('micFixedBtn');
+        if (micFixed) micFixed.addEventListener('click', () => this.startVoiceInput('fixed'));
+        const voiceBtn = document.getElementById('voiceBtn');
+        if (voiceBtn) voiceBtn.addEventListener('click', () => this.startVoiceInput('variable'));
+        const chatVoice = document.getElementById('chatVoiceBtn');
+        if (chatVoice) chatVoice.addEventListener('click', () => this.startVoiceInput('chat'));
+    }
+
+    startVoiceInput(type = 'variable') {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        const localeMap = { it: 'it-IT', en: 'en-US', es: 'es-ES', fr: 'fr-FR' };
+        recognition.lang = localeMap[this.data.language] || 'it-IT';
+        recognition.interimResults = true;
+
+        let button, statusElement;
+        let timeoutDuration = 8000;
+
+        if (type === 'fixed') {
+            button = document.getElementById('micFixedBtn');
+            statusElement = document.getElementById('fixedVoiceStatus');
+            timeoutDuration = 15000;
+        } else {
+            button = document.getElementById('voiceBtn');
+            statusElement = document.getElementById('voiceStatus');
+        }
+
+        if (!button) return;
+
+        button.classList.add('listening');
+        statusElement.textContent = '🎤 ' + this.t('voiceSpeak');
+
+        recognition.onresult = (event) => {
+            const result = event.results[event.results.length - 1];
+            const transcript = result[0].transcript.trim();
+            if (result.isFinal) {
+                if (type === 'fixed') this.processFixedVoiceCommand(transcript);
+                else this.processVoiceCommand(transcript);
+                statusElement.textContent = '🎤 ' + this.t('voiceTap');
+            } else {
+                statusElement.textContent = `🔊 ${transcript}...`;
+            }
+        };
+
+        recognition.onerror = () => {
+            button.classList.remove('listening');
+            statusElement.textContent = '❌ ' + this.t('error');
+            setTimeout(() => {
+                statusElement.textContent = '🎤 ' + this.t('voiceTap');
+            }, 2000);
+        };
+
+        recognition.onend = () => {
+            button.classList.remove('listening');
+        };
+
+        recognition.start();
+
+        setTimeout(() => {
+            recognition.stop();
+            button.classList.remove('listening');
+            statusElement.textContent = '🎤 ' + this.t('voiceTap');
+        }, timeoutDuration);
+    }
+
+    processVoiceCommand(transcript) {
+        const amountMatch = transcript.match(/(\d+[.,]?\d*)/);
+        if (amountMatch) {
+            const amount = parseFloat(amountMatch[0].replace(',', '.'));
+            let description = transcript.replace(amountMatch[0], '').replace(/euro|€|euros/gi, '').trim();
+            document.getElementById('expenseName').value = description || (this.data.language === 'it' ? 'Spesa' : 'Expense');
+            document.getElementById('expenseAmount').value = amount;
+            alert(this.t('voiceDetected', { desc: (description || this.t('genericExpense')), amount: amount }));
+        }
+    }
+
+    processFixedVoiceCommand(transcript) {
+        const words = transcript.split(' ');
+        let name = words[0] || (this.data.language === 'it' ? 'Spesa' : 'Expense');
+        if (name.length > 20) name = name.substring(0, 20);
+        const amountMatch = transcript.match(/(\d+[.,]?\d*)/);
+        const amount = amountMatch ? parseFloat(amountMatch[0].replace(',', '.')) : 0;
+        const dayMatch = transcript.match(/(\d{1,2})/g);
+        let day = 1;
+        if (dayMatch && dayMatch.length > 0) {
+            for (let d of dayMatch) {
+                const candidate = parseInt(d);
+                if (candidate >= 1 && candidate <= 31 && candidate !== Math.round(amount)) {
+                    day = candidate;
+                    break;
+                }
+            }
+        }
+        const dateMatch = transcript.match(/(\d{1,2})[\/\s](\d{1,2})[\/\s](\d{4})/);
+        let endDate = '';
+        if (dateMatch) {
+            endDate = `${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+        } else {
+            const d = new Date();
+            d.setFullYear(d.getFullYear() + 10);
+            endDate = d.toISOString().split('T')[0];
+        }
+        document.getElementById('fixedName').value = name;
+        document.getElementById('fixedAmount').value = amount;
+        document.getElementById('fixedDay').value = day;
+        document.getElementById('fixedEndDate').value = endDate;
+        alert(this.t('voiceFixedDetected', { name, amount: amount, day }));
+    }
+
+    // ========== AI WIDGET ==========
+    generateAiSuggestion() {
+        const suggestions = [];
+        const language = this.data.language;
+        
+        const categoryTotals = {};
+        if (this.data.variableExpenses && typeof this.data.variableExpenses === 'object') {
+            Object.values(this.data.variableExpenses).forEach(day => {
+                if (Array.isArray(day)) {
+                    day.forEach(exp => {
+                        const cat = exp.category || 'Altro';
+                        categoryTotals[cat] = (categoryTotals[cat] || 0) + (exp.amount || 0);
+                    });
+                }
+            });
+        }
+
+        if (Object.keys(categoryTotals).length === 0) {
+            document.getElementById('aiWidget').style.display = 'none';
+            return;
+        }
+
+        const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+        const topCatName = topCategory[0];
+
+        if (topCategory[1] > 100) {
+            const reduction = Math.round(topCategory[1] * 0.1);
+            suggestions.push({
+                message: language === 'it'
+                    ? `💡 Hai speso ${this.formatCurrency(topCategory[1])} in ${topCatName}. Riducendo del 10% (${this.formatCurrency(reduction)}), potresti destinare quella cifra al risparmio.`
+                    : `💡 You spent ${this.formatCurrency(topCategory[1])} on ${topCatName}. By reducing it by 10% (${this.formatCurrency(reduction)}), you could add that to your savings.`,
+                action: language === 'it' ? 'Imposta obiettivo' : 'Set goal',
+                actionType: 'reduce',
+                category: topCategory[0],
+                amount: reduction
+            });
+        }
+
+        if (categoryTotals.Trasporti && categoryTotals.Trasporti > 50) {
+            const potentialSave = Math.round(categoryTotals.Trasporti * 0.2);
+            suggestions.push({
+                message: language === 'it'
+                    ? `🚗 Hai speso ${this.formatCurrency(categoryTotals.Trasporti)} in trasporti. Usando più mezzi pubblici, potresti risparmiare circa ${this.formatCurrency(potentialSave)} al mese.`
+                    : `🚗 You spent ${this.formatCurrency(categoryTotals.Trasporti)} on transport. Using public transport more could save you about ${this.formatCurrency(potentialSave)} per month.`,
+                action: language === 'it' ? 'Scopri come' : 'Learn how',
+                actionType: 'transport',
+                amount: potentialSave
+            });
+        }
+
+        if (categoryTotals.Svago && categoryTotals.Svago > 80) {
+            const potentialSave = Math.round(categoryTotals.Svago * 0.15);
+            suggestions.push({
+                message: language === 'it'
+                    ? `🎮 Hai speso ${this.formatCurrency(categoryTotals.Svago)} in svago. Limitando le uscite a 2 a settimana, potresti risparmiare ${this.formatCurrency(potentialSave)}.`
+                    : `🎮 You spent ${this.formatCurrency(categoryTotals.Svago)} on leisure. Limiting to 2 outings per week could save you ${this.formatCurrency(potentialSave)}.`,
+                action: language === 'it' ? 'Pianifica' : 'Plan',
+                actionType: 'leisure',
+                amount: potentialSave
+            });
+        }
+
+        if (suggestions.length > 0) {
+            const randomIndex = Math.floor(Math.random() * suggestions.length);
+            this.showAiSuggestion(suggestions[randomIndex]);
+        } else {
+            document.getElementById('aiWidget').style.display = 'none';
+        }
+    }
+
+    showAiSuggestion(suggestion) {
+        const widget = document.getElementById('aiWidget');
+        const messageEl = document.getElementById('aiMessage');
+        const actionEl = document.getElementById('aiAction');
+        const actionBtn = document.getElementById('applyAiSuggestion');
+        
+        messageEl.textContent = suggestion.message;
+        actionBtn.textContent = suggestion.action;
+        
+        actionBtn.dataset.type = suggestion.actionType;
+        actionBtn.dataset.amount = suggestion.amount || 0;
+        actionBtn.dataset.category = suggestion.category || '';
+        
+        widget.style.display = 'block';
+        actionEl.style.display = 'flex';
+    }
+
+    setupAiActions() {
+        const applyBtn = document.getElementById('applyAiSuggestion');
+        const dismissBtn = document.getElementById('dismissAiSuggestion');
+        const aiAction = document.getElementById('aiAction');
+        const aiWidget = document.getElementById('aiWidget');
+
+        if (!applyBtn) return;
+
+        // Evita doppie registrazioni listener (GitHub Pages / SW cache / reload)
+        const cleanApplyBtn = applyBtn.cloneNode(true);
+        applyBtn.parentNode.replaceChild(cleanApplyBtn, applyBtn);
+
+        if (dismissBtn) {
+            const cleanDismissBtn = dismissBtn.cloneNode(true);
+            dismissBtn.parentNode.replaceChild(cleanDismissBtn, dismissBtn);
+            cleanDismissBtn.addEventListener('click', () => {
+                if (aiWidget) aiWidget.style.display = 'none';
+            });
+        }
+
+        cleanApplyBtn.addEventListener('click', (e) => {
+            const type = e.currentTarget.dataset.type || '';
+            const amount = parseFloat(e.currentTarget.dataset.amount || '0');
+
+            const bumpGoal = (extra) => {
+                const currentGoal = this.data.savingsGoal || 0;
+                const newGoal = currentGoal + (extra || 0);
+                const goalInput = document.getElementById('saveGoal');
+                if (goalInput) goalInput.value = newGoal;
+
+                this.showToast(
+                    this.data.language === 'it'
+                        ? `🎯 Obiettivo aumentato a ${this.formatCurrency(newGoal)}`
+                        : `🎯 Goal increased to ${this.formatCurrency(newGoal)}`,
+                    'success'
+                );
+            };
+
+            if (type === 'reduce' && amount > 0) {
+                bumpGoal(amount);
+            } else if (type === 'transport' && amount > 0) {
+                const message = this.data.language === 'it'
+                    ? `🚗 Prova a usare mezzi pubblici o car pooling per risparmiare ${this.formatCurrency(amount)} al mese. Vuoi fissare un obiettivo?`
+                    : `🚗 Try using public transport or car pooling to save ${this.formatCurrency(amount)} per month. Want to set a goal?`;
+
+                if (confirm(message)) bumpGoal(amount);
+            } else if (type === 'leisure' && amount > 0) {
+                const message = this.data.language === 'it'
+                    ? `🎮 Limitando le uscite a 2 a settimana, potresti risparmiare ${this.formatCurrency(amount)}. Vuoi fissare un obiettivo?`
+                    : `🎮 Limiting to 2 outings per week could save you ${this.formatCurrency(amount)}. Want to set a goal?`;
+
+                if (confirm(message)) bumpGoal(amount);
+            } else {
+                this.showToast(this.t('featureInDev'), 'info');
+            }
+
+            if (aiAction) aiAction.style.display = 'none';
+            setTimeout(() => {
+                if (aiWidget) aiWidget.style.display = 'none';
+            }, 2000);
+        });
+    }
+}
+
+// ============================================
+// INIZIALIZZAZIONE
+// ============================================
+
+const app = new BudgetWise();
+window.app = app;
+
+// ============================================
+// FIX: Pulsante Importa CSV
+// ============================================
+setTimeout(function() {
+    const btn = document.getElementById('importCsvBtn');
+    if (!btn || !window.app) return;
+    
+    btn.addEventListener('click', function() {
+        document.getElementById('csvFile').click();
+    });
+    
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        document.getElementById('csvFileName').textContent = file.name;
+        
+        const delimiter = document.getElementById('csvSeparator').value;
+        const dateFormat = document.getElementById('csvDelimiter').value;
+        
+        if (window.app.parseCSV) {
+            window.app.parseCSV(file, delimiter, dateFormat);
+        } else {
+            alert('❌ Funzione parseCSV non trovata!');
+        }
+    });
+}, 2000);
