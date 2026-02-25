@@ -860,9 +860,8 @@ class BudgetWise {
         
         this.init();
     }
-    
 
-        init() {
+    init() {
         this.loadData();
         this.setupEventListeners();
         this.applyTheme();
@@ -2018,7 +2017,8 @@ class BudgetWise {
             });
         });
     }
-        editVariableExpense(date, id) {
+
+    editVariableExpense(date, id) {
         date = this.normalizeIsoDate(date);
         if (!this.data.variableExpenses || !this.data.variableExpenses[date]) return;
         const idx = this.data.variableExpenses[date].findIndex(e => e.id === id);
@@ -2450,7 +2450,7 @@ class BudgetWise {
         alert(this.t('backupDownloaded'));
     }
 
-               restoreData(event) {
+    restoreData(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -2707,7 +2707,7 @@ class BudgetWise {
         return emojiMap[category] || '📌';
     }
 
-     // ========== REVISIONE IMPORT CSV ==========
+    // ========== REVISIONE IMPORT CSV ==========
     showImportReview(importedExpenses) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('importReviewOverlay');
@@ -2784,7 +2784,8 @@ class BudgetWise {
             cancelBtn.addEventListener('click', onCancel);
         });
     }
-            // ========== MAPPATURA CAMPI CSV ==========
+
+    // ========== MAPPATURA CAMPI CSV ==========
     async showMappingDialog(file, delimiter, skipRows = 0, headerRow = 1) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('csvMappingOverlay');
@@ -2922,8 +2923,8 @@ class BudgetWise {
             reader.readAsText(file);
         });
     }
-    
-        // ========== IMPORT CSV CON MAPPATURA E REVISIONE ==========
+
+    // ========== IMPORT CSV CON MAPPATURA E REVISIONE ==========
     async parseCSV(file, delimiter, dateFormat, skipRows = 0, headerRow = 1) {
         console.log('📥 Inizio import CSV:', file.name, 'delimiter:', delimiter, 'dateFormat:', dateFormat, 'skipRows:', skipRows, 'headerRow:', headerRow);
         
@@ -2949,7 +2950,7 @@ class BudgetWise {
             
             const lines = allLines.slice(dataStartLine);
             const importedExpenses = [];
-            const tempIncomes = []; // Array temporaneo per le entrate
+            const tempIncomes = [];
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
@@ -3008,11 +3009,9 @@ class BudgetWise {
             }
             
             if (importedExpenses.length > 0) {
-                // MOSTRA LA FINESTRA DI REVISIONE
                 const reviewed = await this.showImportReview(importedExpenses);
                 
                 if (reviewed.length > 0) {
-                    // Salva le spese revisionate
                     for (const exp of reviewed) {
                         if (!this.data.variableExpenses) this.data.variableExpenses = {};
                         if (!this.data.variableExpenses[exp.date]) this.data.variableExpenses[exp.date] = [];
@@ -3024,7 +3023,6 @@ class BudgetWise {
                         });
                     }
                     
-                    // Salva anche le entrate (se ce ne sono)
                     if (tempIncomes.length > 0) {
                         if (!this.data.incomes) this.data.incomes = [];
                         this.data.incomes.push(...tempIncomes);
@@ -3034,7 +3032,6 @@ class BudgetWise {
                     this.updateUI();
                     this.updateChart();
                     
-                    // Mostra la data più recente
                     const mostRecent = reviewed
                         .map(e => this.normalizeIsoDate(e.date))
                         .sort()
@@ -3050,7 +3047,6 @@ class BudgetWise {
                     alert(this.t('importCancelled'));
                 }
             } else {
-                                // Se non ci sono spese ma ci sono entrate
                 if (tempIncomes.length > 0) {
                     if (!this.data.incomes) this.data.incomes = [];
                     this.data.incomes.push(...tempIncomes);
@@ -3088,11 +3084,9 @@ class BudgetWise {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     
-                    // Se sheetIndex è -1, prendi il primo foglio
                     const sheetName = workbook.SheetNames[sheetIndex >= 0 ? sheetIndex : 0];
                     const worksheet = workbook.Sheets[sheetName];
                     
-                    // Converti in JSON con intestazione se specificata
                     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
                     
                     if (rows.length === 0) {
@@ -3100,7 +3094,6 @@ class BudgetWise {
                         return;
                     }
                     
-                    // Estrai intestazione se richiesta
                     let headers = [];
                     let dataRows = rows;
                     
@@ -3108,20 +3101,15 @@ class BudgetWise {
                         headers = rows[headerRow].map(cell => String(cell).trim());
                         dataRows = rows.slice(headerRow + 1);
                     } else {
-                        // Nessuna intestazione: crea colonne fittizie
                         headers = rows[0].map((_, i) => `Colonna ${i+1}`);
                     }
                     
-                    // Filtra righe vuote
                     dataRows = dataRows.filter(row => row.some(cell => String(cell).trim() !== ''));
                     
-                    // Converti in formato CSV-like per usare showMappingDialog
                     const csvContent = [headers, ...dataRows].map(row => row.join(',')).join('\n');
                     
-                    // Crea un file virtuale per la mappatura
                     const virtualFile = new File([csvContent], file.name.replace(/\.[^/.]+$/, '') + '_converted.csv', { type: 'text/csv' });
                     
-                    // Ora usa il flusso esistente di import CSV
                     this.importFromVirtualCSV(virtualFile, ',', 'DD/MM/YYYY', file.name);
                     resolve();
                     
@@ -3593,7 +3581,7 @@ const app = new BudgetWise();
 window.app = app;
 
 // ============================================
-// GESTIONE IMPORT CSV/EXCEL (VERSIONE SEMPLIFICATA)
+// GESTIONE IMPORT CSV/EXCEL
 // ============================================
 setTimeout(function() {
     const btn = document.getElementById('importCsvBtn');
@@ -3607,12 +3595,10 @@ setTimeout(function() {
         return;
     }
 
-    // Al click sul pulsante, attiva l'input file
     btn.addEventListener('click', function() {
         fileInput.click();
     });
 
-    // Quando un file viene selezionato
     fileInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -3700,4 +3686,3 @@ setTimeout(function() {
     });
     
 }, 2000);
-           
