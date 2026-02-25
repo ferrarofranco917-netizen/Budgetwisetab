@@ -2982,6 +2982,7 @@ class BudgetWise {
         };
         reader.readAsText(file);
     }
+
     // ========== IMPORT EXCEL ==========
     async parseExcel(file, sheetIndex = 0, headerRow = 0) {
         console.log('📥 Inizio import Excel:', file.name, 'foglio:', sheetIndex, 'headerRow:', headerRow);
@@ -3049,13 +3050,15 @@ class BudgetWise {
             reader.readAsArrayBuffer(file);
         });
     }
-        async importFromVirtualCSV(file, delimiter, dateFormat, originalName) {
+
+    async importFromVirtualCSV(file, delimiter, dateFormat, originalName) {
         // Usa la funzione parseCSV esistente, ma prima mostriamo un messaggio
         console.log('🔄 Conversione da Excel a CSV per:', originalName);
         
         // Chiama parseCSV con il file virtuale
         await this.parseCSV(file, delimiter, dateFormat);
     }
+
     // ========== ONBOARDING GUIDATO ==========
     startOnboarding() {
         if (localStorage.getItem('budgetwise-onboarding-completed') === 'true') return;
