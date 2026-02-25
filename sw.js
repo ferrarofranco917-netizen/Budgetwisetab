@@ -1,14 +1,14 @@
 // BudgetWise Service Worker - Production Safe
 // Works for browser + installed PWA (GitHub Pages friendly)
 
-const CACHE_VERSION = "v13";                 // bump ad ogni release
-const CACHE_NAME = "budgetwise-cache-20260225v13";
+const CACHE_VERSION = "v14";                 // bump ad ogni release
+const CACHE_NAME = "budgetwise-cache-20260225v14";
 
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./style.css",
-  "./app.js",
+  "./app.js?v=20260225v14",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",

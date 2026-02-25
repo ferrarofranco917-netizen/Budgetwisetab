@@ -1443,6 +1443,7 @@ class BudgetWise {
         this.updateIncomeList();
         this.updateFixedExpensesList();
         this.updateVariableExpensesList();
+        this.updateFixedStatusHome();
         this.updateChart();
 
         this.updateAllCategorySelects();
@@ -1709,6 +1710,116 @@ class BudgetWise {
 
         return total;
     }
+
+/**
+ * Ritorna le occorrenze delle spese fisse nel periodo corrente, marcate come
+ * "Pagata" se trovate tra le spese variabili (estratto conto) con match prudente.
+ * Regola periodo: start <= data < end
+ *
+ * @returns {Array<{name:string, amount:number, dueDate:string, paid:boolean, match?:{id:string,date:string,name:string,amount:number}}>}
+ */
+getFixedOccurrencesInPeriod() {
+    if (!this.data.fixedExpenses || !Array.isArray(this.data.fixedExpenses)) return [];
+
+    const start = new Date(this.normalizeIsoDate(this.data.periodStart));
+    const end = new Date(this.normalizeIsoDate(this.data.periodEnd));
+    if ([start, end].some(d => isNaN(d.getTime()))) return [];
+
+    // mesi nel periodo
+    const months = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    while (cursor <= endMonth) {
+        months.push({ y: cursor.getFullYear(), m: cursor.getMonth() });
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    const vars = this.getVariableExpensesInPeriodFlat();
+    const consumed = new Set();
+
+    const occs = [];
+
+    for (const exp of this.data.fixedExpenses) {
+        if (!exp || !exp.day) continue;
+        const expEnd = exp.endDate ? new Date(this.normalizeIsoDate(exp.endDate)) : null;
+
+        for (const mm of months) {
+            const lastDay = new Date(mm.y, mm.m + 1, 0).getDate();
+            const dueDay = Math.min(parseInt(exp.day, 10) || 1, lastDay);
+            const dueDateObj = new Date(mm.y, mm.m, dueDay);
+
+            if (dueDateObj < start || dueDateObj >= end) continue;
+            if (expEnd && dueDateObj > expEnd) continue;
+
+            const dueDate = dueDateObj.toISOString().slice(0, 10);
+            const occ = { name: exp.name, amount: exp.amount, dueDate };
+            const match = this.matchFixedOccurrenceToVariable(occ, vars, consumed);
+
+            if (match) consumed.add(match.id);
+
+            occs.push({
+                name: (exp.name || '').toString(),
+                amount: Number(exp.amount || 0),
+                dueDate,
+                paid: !!match,
+                match: match ? { id: match.id, date: match.date, name: match.name, amount: match.amount } : null
+            });
+        }
+    }
+
+    // sort per data, poi per nome
+    occs.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '') || (a.name || '').localeCompare(b.name || ''));
+    return occs;
+}
+
+updateFixedStatusHome() {
+    const listEl = document.getElementById('fixedStatusHomeList');
+    if (!listEl) return;
+
+    const esc = (s) => (s ?? '').toString()
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+
+    const occs = this.getFixedOccurrencesInPeriod();
+    if (!occs || occs.length === 0) {
+        listEl.innerHTML = `<p class="chart-note">Nessuna spesa fissa nel periodo</p>`;
+        return;
+    }
+
+    const fmtDate = (iso) => {
+        try {
+            const d = new Date(this.normalizeIsoDate(iso));
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleDateString(this.data.language === 'it' ? 'it-IT' : 'en-US', { day: '2-digit', month: '2-digit' });
+        } catch {
+            return iso;
+        }
+    };
+
+    listEl.innerHTML = occs.map(o => {
+        const statusTxt = o.paid ? '✅ Pagata' : '⏳ Prevista';
+        const pillClass = o.paid ? 'fixed-pill paid' : 'fixed-pill due';
+        const matchTxt = (o.paid && o.match) ? `Trovata: ${fmtDate(o.match.date)} • ${(o.match.name || '')}` : '';
+
+        return `
+            <div class="fixed-status-row">
+                <div class="fixed-status-left">
+                    <div class="fixed-status-name" title="${esc(o.name)}">${esc(o.name)}</div>
+                    <div class="fixed-status-sub">Scadenza: ${fmtDate(o.dueDate)}</div>
+                </div>
+                <div class="fixed-status-right">
+                    <div class="fixed-status-amount">${this.formatCurrency(o.amount)}</div>
+                    <div class="${pillClass}">${statusTxt}</div>
+                    ${matchTxt ? `<div class="fixed-match" title="${esc(matchTxt)}">${esc(matchTxt)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 
 
     calculatePlannedSavings() {
