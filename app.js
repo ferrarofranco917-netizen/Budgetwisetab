@@ -2788,7 +2788,7 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
         });
     }
 
-        // ========== MAPPATURA CAMPI CSV ==========
+            // ========== MAPPATURA CAMPI CSV ==========
     async showMappingDialog(file, delimiter, skipRows = 0, headerRow = 1) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('csvMappingOverlay');
@@ -2812,12 +2812,13 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     return;
                 }
                 
-                // Salta le righe iniziali
+                // 1. Salta le righe iniziali
                 const startLine = Math.min(skipRows, lines.length - 1);
-                let headerLine = startLine;
                 
-                // Se headerRow è > 0, la riga di intestazione è startLine + (headerRow - 1)
+                // 2. Determina la riga di intestazione
+                let headerLine = startLine;
                 if (headerRow > 0) {
+                    // headerRow = 1 significa la prima riga dopo skipRows
                     headerLine = startLine + (headerRow - 1);
                     if (headerLine >= lines.length) {
                         alert(`Riga intestazione ${headerRow} non trovata. Uso la prima riga disponibile.`);
@@ -2825,9 +2826,10 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     }
                 }
                 
-                // Estrai intestazione
+                // 3. Estrai intestazione
                 let headers = [];
                 if (headerRow > 0) {
+                    // Usa la riga specificata come intestazione
                     headers = lines[headerLine].split(delimiter).map(h => h.trim());
                 } else {
                     // Nessuna intestazione: crea colonne fittizie
@@ -2835,9 +2837,10 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     headers = sampleLine.split(delimiter).map((_, i) => `Colonna ${i+1}`);
                 }
                 
-                // Prepara dati per anteprima (dopo l'intestazione)
+                // 4. Prepara dati per anteprima (dopo l'intestazione)
                 const previewData = [];
-                const dataStartLine = headerLine + 1;
+                const dataStartLine = headerLine + 1; // Inizia dopo l'intestazione
+                
                 for (let i = dataStartLine; i < Math.min(dataStartLine + 5, lines.length); i++) {
                     previewData.push(lines[i].split(delimiter).map(cell => cell.trim()));
                 }
@@ -2909,11 +2912,14 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     resolve(null);
                 };
                 
-                confirmBtn.replaceWith(confirmBtn.cloneNode(true));
-                cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+                // Clona per evitare listener duplicati
+                const newConfirm = confirmBtn.cloneNode(true);
+                const newCancel = cancelBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+                cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
                 
-                document.getElementById('confirmMappingBtn').addEventListener('click', onConfirm);
-                document.getElementById('cancelMappingBtn').addEventListener('click', onCancel);
+                newConfirm.addEventListener('click', onConfirm);
+                newCancel.addEventListener('click', onCancel);
             };
             
             reader.onerror = () => {
@@ -2923,12 +2929,10 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
             reader.readAsText(file);
         });
     }
-        // ========== IMPORT CSV CON MAPPATURA ==========
+           // ========== IMPORT CSV CON MAPPATURA ==========
     async parseCSV(file, delimiter, dateFormat, skipRows = 0, headerRow = 1) {
-        console.log('📥 Inizio import CSV:', file.name, 'delimiter:', delimiter, 'dateFormat:', dateFormat);
+        console.log('📥 Inizio import CSV:', file.name, 'delimiter:', delimiter, 'dateFormat:', dateFormat, 'skipRows:', skipRows, 'headerRow:', headerRow);
         
-        // Leggi i nuovi parametri dall'HTML
-          
         const mapping = await this.showMappingDialog(file, delimiter, skipRows, headerRow);
         if (!mapping) {
             alert(this.t('importCancelled'));
@@ -2942,11 +2946,11 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
             
             // Salta le righe iniziali
             const startLine = Math.min(skipRows, allLines.length - 1);
-            let dataStartLine = startLine;
             
-            // Se c'è intestazione, la saltiamo anche quella
+            // Determina dove iniziano i dati (dopo l'intestazione)
+            let dataStartLine = startLine;
             if (headerRow > 0) {
-                dataStartLine = startLine + headerRow;
+                dataStartLine = startLine + headerRow; // Salta anche l'intestazione
             }
             
             const lines = allLines.slice(dataStartLine);
@@ -2966,6 +2970,7 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                 
                 if (!dateStr || !description || !amountStr) continue;
                 
+                // Gestione formato data
                 if (dateFormat === 'DD/MM/YYYY') {
                     const parts = dateStr.split(/[\/\-]/);
                     if (parts.length === 3) {
@@ -3025,6 +3030,8 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     this.saveData();
                     this.updateUI();
                     this.updateChart();
+                    
+                    // Mostra la data più recente
                     const mostRecent = reviewed
                         .map(e => this.normalizeIsoDate(e.date))
                         .sort()
@@ -3032,6 +3039,7 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                     const dateInput = document.getElementById('expenseDate');
                     if (dateInput && mostRecent) dateInput.value = mostRecent;
                     this.updateVariableExpensesList();
+                    
                     alert(this.data.language === 'it'
                         ? `✅ Importate ${reviewed.length} spese!`
                         : `✅ Imported ${reviewed.length} expenses!`);
@@ -3045,10 +3053,12 @@ if (importBtn) importBtn.innerHTML = this.t('csvExcelButton');
                 alert(this.data.language === 'it' ? '✅ File importato con successo!' : '✅ File imported successfully!');
             }
         };
+        
         reader.onerror = () => {
             console.error('❌ Errore lettura file');
             alert(this.t('fileReadError'));
         };
+        
         reader.readAsText(file);
     }
     // ========== IMPORT EXCEL ==========
