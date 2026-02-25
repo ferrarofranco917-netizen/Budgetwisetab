@@ -2940,8 +2940,7 @@ class BudgetWise {
             reader.onload = async (e) => {
                 try {
                     const text = e.target.result;
-                    const allLines = String(text).split('
-').filter(line => line.trim() !== '');
+                    const allLines = String(text).split('\n').filter(line => line.trim() !== '');
 
                     // Salta le righe iniziali
                     const startLine = Math.min(skipRows, allLines.length - 1);
@@ -3161,8 +3160,7 @@ class BudgetWise {
                     return `${y}-${m}-${d}`;
                 }
             }
-            return String(cell).replace(/[	
-]+/g, ' ').trim();
+            return String(cell).replace(/[\t ]+/g, ' ').trim();
         };
 
         const tsvLines = [];
@@ -3170,8 +3168,7 @@ class BudgetWise {
         for (const row of dataRows) {
             tsvLines.push((row || []).map(cellToString).join('	'));
         }
-        const tsvContent = tsvLines.join('
-');
+        const tsvContent = tsvLines.join('\n');
 
         const virtualFile = new File(
             [tsvContent],
