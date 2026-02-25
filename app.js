@@ -10,6 +10,7 @@ class BudgetWise {
             variableExpenses: {},
             savingsPercent: 0,
             savingsGoal: 0,
+            savingsPot: 0,
             threshold: 50,
             language: 'it',
             // Periodo: viene inizializzato dopo l'assegnazione di this.data
@@ -996,7 +997,7 @@ class BudgetWise {
         const start = new Date(this.normalizeIsoDate(this.data.periodStart));
         const end = new Date(this.normalizeIsoDate(this.data.periodEnd));
         if ([d, start, end].some(x => isNaN(x.getTime()))) return false;
-        return d >= start && d <= end;
+        return d >= start && d < end;
     }
 
 
@@ -1559,7 +1560,7 @@ class BudgetWise {
                 const dueDay = Math.min(parseInt(exp.day, 10) || 1, lastDay);
                 const dueDate = new Date(mm.y, mm.m, dueDay);
 
-                if (dueDate < start || dueDate > end) continue;
+                if (dueDate < start || dueDate >= end) continue;
                 if (expEnd && dueDate > expEnd) continue;
 
                 total += (exp.amount || 0);
@@ -1569,10 +1570,165 @@ class BudgetWise {
         return total;
     }
 
+
+    /**
+     * Ritorna la lista "flat" delle spese variabili nel periodo corrente
+     */
+    getVariableExpensesInPeriodFlat() {
+        const out = [];
+        if (!this.data.variableExpenses || typeof this.data.variableExpenses !== 'object') return out;
+        Object.entries(this.data.variableExpenses).forEach(([date, arr]) => {
+            const d = this.normalizeIsoDate(date);
+            if (!d || !this.isDateInPeriod(d)) return;
+            if (Array.isArray(arr)) {
+                arr.forEach(e => {
+                    if (!e) return;
+                    out.push({
+                        id: e.id,
+                        date: d,
+                        name: (e.name || '').toString(),
+                        category: e.category,
+                        amount: Number(e.amount || 0)
+                    });
+                });
+            }
+        });
+        return out;
+    }
+
+    normalizeMatchText(s) {
+        return (s || '')
+            .toString()
+            .toLowerCase()
+            .replace(/[\u0300-\u036f]/g, '') // diacritics
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    /**
+     * Verifica se una spesa variabile corrisponde ad una scadenza fissa (per non conteggiarla 2 volte)
+     * Matching "robusto ma prudente":
+     * - importo simile (tolleranza 1 cent)
+     * - data entro +/- 3 giorni
+     * - se possibile, match su token del nome
+     */
+    matchFixedOccurrenceToVariable(occ, vars, consumedIds) {
+        const occAmount = Number(occ.amount || 0);
+        const occDate = new Date(this.normalizeIsoDate(occ.dueDate));
+        if (isNaN(occDate.getTime())) return null;
+
+        const nameNorm = this.normalizeMatchText(occ.name);
+        const tokens = nameNorm.split(' ').filter(t => t.length >= 4);
+
+        const candidates = vars.filter(v => {
+            if (!v || consumedIds.has(v.id)) return false;
+            if (Math.abs(Math.abs(Number(v.amount || 0)) - Math.abs(occAmount)) > 0.01) return false;
+
+            const vd = new Date(this.normalizeIsoDate(v.date));
+            if (isNaN(vd.getTime())) return false;
+            const diffDays = Math.abs((vd - occDate) / (1000 * 60 * 60 * 24));
+            if (diffDays > 3) return false;
+
+            return true;
+        });
+
+        if (candidates.length === 0) return null;
+
+        // Se c'è un solo candidato, accettiamo.
+        if (candidates.length === 1) return candidates[0];
+
+        // Se più candidati: richiediamo match token sul nome (almeno 1 token)
+        if (tokens.length > 0) {
+            const best = candidates.find(c => {
+                const cn = this.normalizeMatchText(c.name);
+                return tokens.some(t => cn.includes(t));
+            });
+            if (best) return best;
+        }
+
+        // Fallback: il più vicino come data
+        candidates.sort((a, b) => {
+            const ad = new Date(this.normalizeIsoDate(a.date));
+            const bd = new Date(this.normalizeIsoDate(b.date));
+            return Math.abs(ad - occDate) - Math.abs(bd - occDate);
+        });
+        return candidates[0];
+    }
+
+    /**
+     * Calcola il totale delle spese fisse NON già presenti tra le variabili importate/inserite nel periodo.
+     * Evita il doppio conteggio: una fissa pagata (presente nel file banca) resta tra le variabili,
+     * e viene esclusa dal "forecast" delle fisse.
+     */
+    calculateTotalFixedExpensesUnpaid() {
+        if (!this.data.fixedExpenses || !Array.isArray(this.data.fixedExpenses)) return 0;
+
+        const start = new Date(this.normalizeIsoDate(this.data.periodStart));
+        const end = new Date(this.normalizeIsoDate(this.data.periodEnd));
+        if ([start, end].some(d => isNaN(d.getTime()))) return 0;
+
+        // mesi nel periodo
+        const months = [];
+        const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+        const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+        while (cursor <= endMonth) {
+            months.push({ y: cursor.getFullYear(), m: cursor.getMonth() });
+            cursor.setMonth(cursor.getMonth() + 1);
+        }
+
+        const vars = this.getVariableExpensesInPeriodFlat();
+        const consumed = new Set();
+
+        let total = 0;
+
+        for (const exp of this.data.fixedExpenses) {
+            if (!exp || !exp.day) continue;
+
+            const expEnd = exp.endDate ? new Date(this.normalizeIsoDate(exp.endDate)) : null;
+
+            for (const mm of months) {
+                const lastDay = new Date(mm.y, mm.m + 1, 0).getDate();
+                const dueDay = Math.min(parseInt(exp.day, 10) || 1, lastDay);
+                const dueDate = new Date(mm.y, mm.m, dueDay);
+
+                if (dueDate < start || dueDate >= end) continue;
+                if (expEnd && dueDate > expEnd) continue;
+
+                const occ = { name: exp.name, amount: exp.amount, dueDate: dueDate.toISOString().slice(0,10) };
+                const match = this.matchFixedOccurrenceToVariable(occ, vars, consumed);
+
+                if (match) {
+                    consumed.add(match.id);
+                    // già pagata/registrata: NON la sommiamo nelle fisse
+                } else {
+                    total += (exp.amount || 0);
+                }
+            }
+        }
+
+        return total;
+    }
+
+
+    calculatePlannedSavings() {
+        const totalIncome = this.calculateTotalIncome();
+        const percent = this.data.savingsPercent || 0;
+        return (totalIncome * percent) / 100;
+    }
+
+    calculateProjectedSavingsEnd() {
+        const pot = this.data.savingsPot || 0;
+        const planned = this.calculatePlannedSavings();
+        const remaining = this.calculateRemaining(); // remaining budget after fixed + planned savings - variable spent
+        // Se vai in rosso, non aumentiamo il pot con un valore negativo
+        return pot + planned + Math.max(0, remaining);
+    }
+
     calculateRemaining() {
         const totalIncome = this.calculateTotalIncome();
-        const totalFixed = this.calculateTotalFixedExpenses();
-        const savingsAmount = (totalIncome * (this.data.savingsPercent || 0)) / 100;
+        const totalFixed = this.calculateTotalFixedExpensesUnpaid();
+        const savingsAmount = this.calculatePlannedSavings();
         const budget = totalIncome - totalFixed - savingsAmount;
         return budget - this.calculateTotalVariableExpenses();
     }
@@ -1760,8 +1916,10 @@ class BudgetWise {
     applySavings() {
         const percent = parseFloat(document.getElementById('savePercent').value) || 0;
         const goal = parseFloat(document.getElementById('saveGoal').value) || 0;
+        const pot = parseFloat(document.getElementById('savingsPotInput')?.value) || 0;
         this.data.savingsPercent = percent;
         this.data.savingsGoal = goal;
+        this.data.savingsPot = pot;
         this.saveData();
         this.updateUI();
         alert(this.t('savingsApplied'));
@@ -1907,6 +2065,13 @@ class BudgetWise {
         document.getElementById('remaining').textContent = this.formatCurrency(this.calculateRemaining());
         document.getElementById('daysLeft').textContent = this.getDaysLeft();
 
+        // Piano risparmi (fondo separato dal budget)
+        const potEl = document.getElementById('savingsPot');
+        const projEl = document.getElementById('savingsProjected');
+        if (potEl) potEl.textContent = this.formatCurrency(this.data.savingsPot || 0);
+        if (projEl) projEl.textContent = `Fine periodo: ${this.formatCurrency(this.calculateProjectedSavingsEnd())}`;
+
+
         const remainingStatus = document.getElementById('remainingStatus');
         const remainingTrend = document.getElementById('remainingTrend');
         const remaining = this.calculateRemaining();
@@ -1925,6 +2090,8 @@ class BudgetWise {
 
         document.getElementById('savePercent').value = this.data.savingsPercent || 0;
         document.getElementById('saveGoal').value = this.data.savingsGoal || 0;
+        const potInput = document.getElementById('savingsPotInput');
+        if (potInput) potInput.value = this.data.savingsPot || 0;
         document.getElementById('thresholdInput').value = this.data.threshold || 50;
 
         const progress = this.calculateSavingsProgress();
@@ -2365,7 +2532,7 @@ class BudgetWise {
         const remaining = this.calculateRemaining();
         const dailyBudget = this.calculateDailyBudget();
         const totalSpent = this.calculateTotalVariableExpenses();
-        const totalFixed = this.calculateTotalFixedExpenses();
+        const totalFixed = this.calculateTotalFixedExpensesUnpaid();
         const daysLeft = this.getDaysLeft();
         if (q.includes('risparmi') || q.includes('risparmiare') || q.includes('save')) {
             const match = q.match(/(\d+)/);
@@ -2630,6 +2797,7 @@ document.documentElement.style.setProperty('--accent-gradient',
                 }
                 
                 this.data = parsed;
+                if (this.data.savingsPot === undefined) this.data.savingsPot = 0;
             } catch (e) {
                 console.warn('Errore nel caricamento dati, reset automatico');
                 this.resetAll();
@@ -2679,6 +2847,7 @@ document.documentElement.style.setProperty('--accent-gradient',
                 variableExpenses: {},
                 savingsPercent: 0,
                 savingsGoal: 0,
+            savingsPot: 0,
                 threshold: 50,
                 language: this.data.language,
                 periodStart: today.toISOString().split('T')[0],
